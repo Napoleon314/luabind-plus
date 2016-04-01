@@ -28,7 +28,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#include <vld.h>
+#ifdef WIN32
+#   include <vld.h>
+#endif
 #include <vtd/rtti.h>
 extern "C"
 {
