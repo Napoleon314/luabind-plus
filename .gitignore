@@ -1,0 +1,6 @@
+*.bak
+*.plist
+*.xcscheme
+*.xcworkspacedata
+*.xccheckout
+*.xcuserstate
