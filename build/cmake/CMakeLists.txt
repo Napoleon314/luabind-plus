@@ -22,14 +22,14 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 file(GLOB_RECURSE VTD_INC ${PROJECT_BINARY_DIR} "../../include/vtd/*")
 file(GLOB_RECURSE LUABIND_INC ${PROJECT_BINARY_DIR} "../../include/luabind/*")
-
-file(GLOB_RECURSE LUABIND_TEST_GROUP ${PROJECT_BINARY_DIR} "../../test/*")
-file(GLOB_RECURSE LUABIND_TEST_CPP ${PROJECT_BINARY_DIR} "../../test/*.cpp")
+file(GLOB_RECURSE LUABIND_TEST ${PROJECT_BINARY_DIR} "../../test/*")
+file(GLOB_RECURSE LUABIND_TEST_LUA ${PROJECT_BINARY_DIR} "../../test/lua/*")
 
 SOURCE_GROUP("vtd" FILES ${VTD_INC})
 SOURCE_GROUP("luabind" FILES ${LUABIND_INC})
-SOURCE_GROUP("test" FILES ${LUABIND_TEST_GROUP})
+SOURCE_GROUP("test" FILES ${LUABIND_TEST})
+SOURCE_GROUP("lua" FILES ${LUABIND_TEST_LUA})
 
 include_directories(${PROJECT_BINARY_DIR} "../../include")
 
-add_executable(luabind_plus_test ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST_CPP})
+add_executable(luabind_plus_test ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST} ${LUABIND_TEST_LUA})
