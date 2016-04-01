@@ -133,7 +133,7 @@ namespace vtd
 		struct unpacker<>
 		{
 			template<class _Ty>
-			static void set(std::identity<_Ty>, base::_Base* _Desc) noexcept
+			static void set(identity<_Ty>, base::_Base* _Desc) noexcept
 			{
 
 			}
@@ -143,7 +143,7 @@ namespace vtd
 		struct unpacker<_This, _Rest...>
 		{
 			template<class _Ty>
-			static void set(std::identity<_Ty> _Id, base::_Base* _Desc) noexcept
+			static void set(identity<_Ty> _Id, base::_Base* _Desc) noexcept
 			{
 				static_assert(__is_base_of(_This, _Ty),
 					"init rtti with wrong base");
@@ -161,7 +161,7 @@ namespace vtd
 				: base(_Name)
 			{
 				static_assert(sizeof...(_Bases) > 0, "init rtti with unknown error");
-				unpacker<_Bases...>::set(std::identity<_Der>(), base_array);
+				unpacker<_Bases...>::set(identity<_Der>(), base_array);
 				base_vec = base_array;
 				base_num = sizeof...(_Bases);
 			}
