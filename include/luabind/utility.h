@@ -4,8 +4,8 @@
 //  Copyright (c) 2016-2026
 // -------------------------------------------------------------------------
 //  Module:      luabind_plus
-//  File name:   luabind.h
-//  Created:     2016/04/01 by Albert D Yang
+//  File name:   utility.h
+//  Created:     2016/04/02 by Albert D Yang
 //  Description:
 // -------------------------------------------------------------------------
 //  Permission is hereby granted, free of charge, to any person obtaining a
@@ -28,13 +28,45 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#pragma once
-
-#include "utility.h"
-#include "type_traits.h"
+//#include <vtd/rtti.h>
 
 namespace luabind
 {
-	
+	struct holder
+	{
+		holder(lua_State* _L) noexcept
+			: L(_L)
+		{
+			top = lua_gettop(_L);
+		}
 
+		~holder() noexcept
+		{
+			lua_settop(L, top);
+		}
+
+	private:
+		lua_State* L = nullptr;
+		int top = 0;
+
+	};
+
+	struct checker
+	{
+		checker(lua_State* _L) noexcept
+			: L(_L)
+		{
+			top = lua_gettop(_L);
+		}
+
+		~checker() noexcept
+		{
+			assert(top == lua_gettop(L));
+		}
+
+	private:
+		lua_State* L = nullptr;
+		int top = 0;
+
+	};
 }

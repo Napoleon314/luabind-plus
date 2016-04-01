@@ -28,21 +28,22 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+#include <vld.h>
 #include <vtd/rtti.h>
-#include <luabind/luabind.h>
 extern "C"
 {
-#	include "lua/lua.h"
-#	include "lua/lualib.h"
-#	include "lua/lauxlib.h"
+#	include <lua/lua.h>
+#	include <lua/lualib.h>
+#	include <lua/lauxlib.h>
 }
+#include <assert.h>
+#include <luabind/luabind.h>
+#include <stdio.h>
 
 class A
 {
 public:
 	vtd_rtti_decl(A);
-
-
 
 	virtual ~A() {}
 
@@ -78,27 +79,81 @@ public:
 
 vtd_rtti_impl(C, A, B);
 
-int main()
+void test_rtti()
 {
 	C* pkC = new C;
 	A* pkA = static_cast<A*>(pkC);
 	B* pkB = static_cast<B*>(pkC);
 
-
 	bool b = vtd_is_kind_of(B, pkA);
 	b = vtd_is_exact_kind_of(B, pkA);
-
-
-	/*VeSizeT stOffset = VeStd::base_offset<B,C>();
-
-	VeSizeT stTemp = B::ms_RTTI.GetPathFrom(&C::ms_kRTTI);*/
 
 	A* pkA2 = vtd_dynamic_cast(A, pkB);
 	B* pkB2 = vtd_dynamic_cast(B, pkB);
 	C* pkC2 = vtd_dynamic_cast(C, pkC);
 	C* pkC3 = vtd_dynamic_cast(C, pkB);
 
-	printf("%d,%d,%d,%d,%d", pkA2->a, pkB2->b, pkC2->c, pkC3->c, b);
+	printf("RTTI TEST: %d,%d,%d,%d,%d\n", pkA2->a, pkB2->b, pkC2->c, pkC3->c, b);
 
+	delete pkC;
+}
+
+int lua_print(lua_State* L) noexcept
+{
+	lua_writestring("--->", 4);
+	int n = lua_gettop(L);  /* number of arguments */
+	int i;
+	lua_getglobal(L, "tostring");
+	for (i = 1; i <= n; i++) {
+		const char *s;
+		size_t l;
+		lua_pushvalue(L, -1);  /* function to be called */
+		lua_pushvalue(L, i);   /* value to print */
+		lua_call(L, 1, 1);
+		s = lua_tolstring(L, -1, &l);  /* get result */
+		if (s == NULL)
+			return luaL_error(L, "'tostring' must return a string to 'print'");
+		if (i > 1) lua_writestring("\t", 1);
+		lua_writestring(s, l);
+		lua_pop(L, 1);  /* pop result */
+	}
+	lua_writeline();
+	return 0;
+}
+
+enum Test
+{
+	TEST_A,
+	TEST_B,
+	TEST_C
+};
+
+int main()
+{
+	int a = luabind::default_maker<int>::make();
+	bool b = luabind::default_maker<bool>::make();
+	Test t = luabind::default_maker<Test>::make();
+	test_rtti();
+	lua_State* L = luaL_newstate();
+	if (L)
+	{
+		luaL_openlibs(L);
+		lua_pushcfunction(L, &lua_print);
+		lua_setglobal(L, "print");
+		char input_buf[65536];
+		while (true)
+		{
+			printf("LUA>");
+			scanf("%s", input_buf);
+			int err = luaL_dostring(L, input_buf);
+			if (err)
+			{
+				fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
+				lua_pop(L, 1);
+			}
+		}
+		lua_close(L);
+		L = nullptr;
+	}
 	return 0;
 }
