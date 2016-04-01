@@ -4,3 +4,6 @@
 *.xcworkspacedata
 *.xccheckout
 *.xcuserstate
+*.suo
+*.pyc
+build/*
