@@ -30,9 +30,6 @@ SOURCE_GROUP("vtd" FILES ${VTD_INC})
 SOURCE_GROUP("luabind" FILES ${LUABIND_INC})
 SOURCE_GROUP("test" FILES ${LUABIND_TEST_GROUP})
 
-message(${VTD_INC})
-message(${LUABIND_INC})
-
 include_directories(${PROJECT_BINARY_DIR} "../../include")
 
-add_executable(luabind_plus_test ${LUABIND_TEST_CPP})
+add_executable(luabind_plus_test ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST_CPP})
