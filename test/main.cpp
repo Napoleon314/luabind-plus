@@ -28,7 +28,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #   include <vld.h>
 #endif
 #include <vtd/rtti.h>
@@ -130,11 +130,35 @@ enum Test
 	TEST_C
 };
 
+enum Test2
+{
+	TEST2_A,
+	TEST2_B,
+	TEST2_C
+};
+
+namespace luabind
+{
+	template <>
+	struct can_get_enum<Test2> : std::false_type
+	{
+		
+	};
+
+	/*template <>
+	struct can_get_number<int> : std::false_type
+	{
+
+	};*/
+}
+
 int main()
 {
-	int a = luabind::default_maker<int>::make();
-	bool b = luabind::default_maker<bool>::make();
-	Test t = luabind::default_maker<Test>::make();
+	auto a = luabind::can_get<Test>::value;
+	auto b = luabind::can_get<Test2>::value;
+	auto c = luabind::can_get<int>::value;
+	auto d = luabind::can_get<void>::value;
+	auto e = luabind::can_get<std::tuple<int, Test2>>::value;
 	test_rtti();
 	lua_State* L = luaL_newstate();
 	if (L)

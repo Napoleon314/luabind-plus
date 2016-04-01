@@ -36,15 +36,6 @@
 namespace luabind
 {
 	template <class _Ty>
-	struct default_value
-	{
-		static _Ty make() noexcept
-		{
-			return _Ty();
-		}
-	};
-
-	template <class _Ty>
 	struct default_enum
 	{
 		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
@@ -78,18 +69,22 @@ namespace luabind
 	};
 
 	template <class _Ty>
-	struct default_maker: std::conditional<std::is_enum<_Ty>::value,
-		default_enum<_Ty>, typename std::conditional<std::is_arithmetic<_Ty>::value,
-		default_number<_Ty>, typename std::conditional<std::is_class<_Ty>::value,
-		default_object<_Ty>, default_value<_Ty>>::type>::type>::type
+	struct default_value
 	{
-		
+		static _Ty make() noexcept
+		{
+			return _Ty();
+		}
 	};
 
-	/*struct default: std::conditional < std::is_enum<_Ty>::value,
-		default_enum<_Ty>, std::conditional < std::is_arithmetic<_Ty>::value,
-		default_number<_Ty>, std::conditional<std::is_class<_Ty>::value,
-		default_object<_Ty>, default_value<_Ty >> ::type>::type> ::type*/
+	template <class _Ty>
+	struct default_maker : std::conditional < std::is_enum<_Ty>::value,
+		default_enum<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
+		default_number<_Ty>, typename std::conditional<std::is_class<_Ty>::value,
+		default_object<_Ty>, default_value<_Ty >> ::type>::type>::type
+	{
+
+	};
 
 	template <>
 	struct default_value<void>
@@ -97,15 +92,6 @@ namespace luabind
 		static void make() noexcept
 		{
 
-		}
-	};
-
-	template <>
-	struct default_value<bool>
-	{
-		static bool make() noexcept
-		{
-			return false;
 		}
 	};
 
@@ -118,11 +104,20 @@ namespace luabind
 		}
 	};
 
+	template <class _Ty>
+	struct default_value<_Ty*>
+	{
+		static _Ty* make() noexcept
+		{
+			return nullptr;
+		}
+	};
+
 	template <class... _Types>
-	struct default_value<std::tuple<_Types...>>;
+	struct default_object<std::tuple<_Types...>>;
 
 	template <>
-	struct default_value<std::tuple<>>
+	struct default_object<std::tuple<>>
 	{
 		static std::tuple<> make() noexcept
 		{
@@ -131,14 +126,136 @@ namespace luabind
 	};
 
 	template <class _This, class... _Rest>
-	struct default_value<std::tuple<_This, _Rest...>>
+	struct default_object<std::tuple<_This, _Rest...>>
 	{
 		static std::tuple<_This, _Rest...> make() noexcept
 		{
-			return std::tuple_cat(std::make_tuple(default_value<_This>::make()),
-				default_value<std::tuple<_Rest...>>::make());
+			return std::tuple_cat(std::make_tuple(default_maker<_This>::make()),
+				default_maker<std::tuple<_Rest...>>::make());
 		}
 	};
 
+	template <class _Ty>
+	struct can_get_enum : std::true_type
+	{
+		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
+	};
+
+	template <class _Ty>
+	struct can_push_enum : std::true_type
+	{
+		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
+		typedef std::true_type type1;
+	};
+
+	template <class _Ty>
+	struct can_get_number : std::true_type
+	{
+		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
+	};
+
+	template <class _Ty>
+	struct can_push_number : std::true_type
+	{
+		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
+	};
+
+	template <class _Ty>
+	struct can_get_value : std::false_type
+	{
+		
+	};
+
+	template <class _Ty>
+	struct can_push_value : std::false_type
+	{
+		
+	};
+
+	template <class _Ty>
+	struct can_get : std::conditional < std::is_enum<_Ty>::value,
+		can_get_enum<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
+		can_get_number<_Ty>, can_get_value<_Ty >> ::type> ::type
+	{
+
+	};
+
+	template <class _Ty>
+	struct can_push : std::conditional < std::is_enum<_Ty>::value,
+		can_push_enum<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
+		can_push_number<_Ty>, can_push_value<_Ty >> ::type> ::type
+	{
+
+	};
+
+	template <>
+	struct can_get_value<void> : std::true_type
+	{
+
+	};
+
+	template <>
+	struct can_get_value<bool> : std::true_type
+	{
+
+	};
+
+	template <>
+	struct can_push_value<bool> : std::true_type
+	{
+
+	};
+
+	template <>
+	struct can_get_value<const char*> : std::true_type
+	{
+
+	};
+
+	template <>
+	struct can_push_value<const char*> : std::true_type
+	{
+
+	};
+
+	template <>
+	struct can_push_value<char*> : std::true_type
+	{
+
+	};
+
+	template <class... _Types>
+	struct can_get_value<std::tuple<_Types...>>;
+
+	template <class... _Types>
+	struct can_push_value<std::tuple<_Types...>>;
+
+	template <>
+	struct can_get_value<std::tuple<>> : std::true_type
+	{
+
+	};
+
+	template <>
+	struct can_push_value<std::tuple<>> : std::true_type
+	{
+
+	};
+
+	template <class _This, class... _Rest>
+	struct can_get_value<std::tuple<_This, _Rest...>>
+		: std::conditional<can_get<_This>::value && can_get<std::tuple<_Rest...>>::value,
+		std::true_type, std::false_type>::type
+	{
+
+	};
+
+	template <class _This, class... _Rest>
+	struct can_push_value<std::tuple<_This, _Rest...>>
+		: std::conditional<can_push<_This>::value && can_push<std::tuple<_Rest...>>::value,
+		std::true_type, std::false_type>::type
+	{
+
+	};
 
 }

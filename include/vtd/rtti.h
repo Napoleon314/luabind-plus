@@ -41,7 +41,7 @@ namespace vtd
 		public:
 			typedef size_t size_type;
 			typedef const char* str_type;
-			typedef std::pair<const base*,size_t> _Base;
+			typedef std::pair<const base*, size_t> _Base;
 
 			base(str_type _Name) noexcept
 				: name(_Name)

@@ -35,6 +35,25 @@
 
 namespace luabind
 {
-	
+	template <class _Ty>
+	struct param_getter
+	{
+		static constexpr int stack_count = 0;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			static_assert(can_get<_Ty>::value,
+				"type is not supported for get in lua");
+			return false;
+		}
+
+		static _Ty get(lua_State* L, int idx) noexcept
+		{
+			static_assert(can_get<_Ty>::value,
+				"type is not supported for get in lua");
+			return default_maker<_Ty>::make();
+		}
+
+	};
 
 }
