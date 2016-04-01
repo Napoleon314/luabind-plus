@@ -28,8 +28,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#include <tuple>
-#include <vector>
+#pragma once
+
+#include "utility.h"
 
 namespace vtd
 {
