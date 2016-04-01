@@ -7,4 +7,6 @@
 *.xcuserstate
 *.suo
 *.pyc
+bin/*
 build/*
+build_cfg.py

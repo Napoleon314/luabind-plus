@@ -397,7 +397,9 @@ def build_project(name, build_path, build_info, compiler_info, need_install = Fa
 				system_name = "WindowsPhone"
 			additional_options += " -DCMAKE_SYSTEM_NAME=%s -DCMAKE_SYSTEM_VERSION=%s" % (system_name, build_info.target_api_level)
 
-		build_dir = "%s/%s%d_%s_%s" % (build_path, build_info.compiler_name, build_info.compiler_version, build_info.target_platform, compiler_info.arch)
+		config_path = "%s%d_%s_%s" % (build_info.compiler_name, build_info.compiler_version, build_info.target_platform, compiler_info.arch)
+		additional_options += " -DBUILD_CONFIG_PATH=%s" % (config_path)
+		build_dir = "%s/%s" % (build_path, config_path)
 
 		if not os.path.exists(build_dir):
 			os.makedirs(build_dir)
