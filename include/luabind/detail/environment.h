@@ -4,8 +4,8 @@
 //  Copyright (c) 2016 Albert D Yang
 // -------------------------------------------------------------------------
 //  Module:      luabind_plus
-//  File name:   luabind.h
-//  Created:     2016/04/01 by Albert D Yang
+//  File name:   environment.h
+//  Created:     2016/04/02 by Albert D Yang
 //  Description:
 // -------------------------------------------------------------------------
 //  Permission is hereby granted, free of charge, to any person obtaining a
@@ -30,54 +30,11 @@
 
 #pragma once
 
-#ifndef LB_ASSERT
-#define LB_ASSERT()
-#endif
-
-#ifndef LB_LOG_D
-#define LB_LOG_D()
-#endif
-
-#ifndef LB_LOG_I
-#define LB_LOG_I()
-#endif
-
-#ifndef LB_LOG_W
-#define LB_LOG_W()
-#endif
-
-#ifndef LB_LOG_E
-#define LB_LOG_E()
-#endif
-
-#include "detail/utility.h"
-#include "detail/type_traits.h"
-#include "detail/environment.h"
-#include "detail/function.h"
-#include "detail/object.h"
-
 namespace luabind
 {
-	
+
+	//void 
+
+
 
 }
-
-#ifdef LB_ASSERT
-#undef LB_ASSERT
-#endif
-
-#ifdef LB_LOG_D
-#undef LB_LOG_D
-#endif
-
-#ifdef LB_LOG_I
-#undef LB_LOG_I
-#endif
-
-#ifdef LB_LOG_W
-#undef LB_LOG_W
-#endif
-
-#ifdef LB_LOG_E
-#undef LB_LOG_E
-#endif

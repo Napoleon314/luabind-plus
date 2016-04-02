@@ -3,7 +3,7 @@
 //  The MIT License (MIT)
 //  Copyright (c) 2016 Albert D Yang
 // -------------------------------------------------------------------------
-//  Module:      luabind_plus
+//  Module:      vtd
 //  File name:   utility.h
 //  Created:     2016/04/01 by Albert D Yang
 //  Description:
