@@ -30,9 +30,21 @@
 
 #pragma once
 
+#include <vtd/smart_ptr.h>
+
 namespace luabind
 {
+	struct env : vtd::ref_obj
+	{
+		lua_State* L = nullptr;
+	};
 
+
+	inline void env_init(lua_State* L) noexcept
+	{
+		//int top = lua_gettop(L);
+		//lua_pushglobaltable(L);
+	}
 	//void 
 
 

@@ -34,7 +34,7 @@
 
 namespace luabind
 {
-	inline int push_func_name(lua_State* L, const char* s)
+	inline int push_func_name(lua_State* L, const char* s) noexcept
 	{
 		if (!s) return 0;
 		int top = lua_gettop(L);

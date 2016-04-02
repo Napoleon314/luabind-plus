@@ -142,6 +142,7 @@ int main()
 			fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
 			lua_pop(L, 1);
 		}
+		luabind::env_init(L);
 
 		int res = luabind::call_function<int>(L, "luabind_test.func1", 3, 5);
 		luabind::call_function(L, "print", "luabind_test.func1(3, 5)=", res);
