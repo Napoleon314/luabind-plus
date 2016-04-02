@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////
 //
 //  The MIT License (MIT)
-//  Copyright (c) 2016-2026
+//  Copyright (c) 2016 Albert D Yang
 // -------------------------------------------------------------------------
 //  Module:      luabind_plus
 //  File name:   function.h
@@ -77,7 +77,7 @@ namespace luabind
 	template <class _Ret = void, class... _Types>
 	_Ret call_function(lua_State* L, const char* func,
 		_Types... pak) noexcept
-	{		
+	{
 		holder h(L);
 		if (push_func_name(L, func) != 1)
 		{

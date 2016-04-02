@@ -1,7 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////
 //
 //  The MIT License (MIT)
-//  Copyright (c) 2016-2026
+//  Copyright (c) 2016 Albert D Yang
 // -------------------------------------------------------------------------
 //  Module:      luabind_plus_test
 //  File name:   main.cpp
@@ -147,6 +147,7 @@ int main()
 		luabind::call_function(L, "print", "luabind_test.func1(3, 5)=", res);
 		res = luabind::call_function<int>(L, "luabind_test.group.func1", 3, 5);
 		luabind::call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
+
 		char input_buf[65536];
 		while (true)
 		{
