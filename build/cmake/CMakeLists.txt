@@ -3,7 +3,7 @@ project (luabind_plus_test)
 
 if(MSVC)
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-	set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /GR- /EHsc")
+	set(CMAKE_CXX_FLAGS "/DWIN32 /D_WINDOWS /W3 /WX /GR- /EHsc")
 	if(NOT MSVC14)
 		message(WARNING "This project needs to be compiled by Visual Studio 2015 and above.")
 	endif()

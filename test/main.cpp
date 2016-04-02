@@ -45,7 +45,6 @@ extern "C"
 #define LB_LOG_E printf
 #include <luabind/luabind.h>
 
-
 class A
 {
 public:
@@ -91,13 +90,13 @@ void test_rtti()
 	A* pkA = static_cast<A*>(pkC);
 	B* pkB = static_cast<B*>(pkC);
 
-	bool b = vtd_is_kind_of(B, pkA);
-	b = vtd_is_exact_kind_of(B, pkA);
+	bool b = vtd_is_kind_of<B>(pkA);
+	b = vtd_is_exact_kind_of<B>(pkA);
 
-	A* pkA2 = vtd_dynamic_cast(A, pkB);
-	B* pkB2 = vtd_dynamic_cast(B, pkB);
-	C* pkC2 = vtd_dynamic_cast(C, pkC);
-	C* pkC3 = vtd_dynamic_cast(C, pkB);
+	A* pkA2 = vtd_dynamic_cast<A>(pkB);
+	B* pkB2 = vtd_dynamic_cast<B>(pkB);
+	C* pkC2 = vtd_dynamic_cast<C>(pkC);
+	C* pkC3 = vtd_dynamic_cast<C>(pkB);
 
 	printf("RTTI TEST: %d,%d,%d,%d,%d\n", pkA2->a, pkB2->b, pkC2->c, pkC3->c, b);
 
@@ -142,14 +141,13 @@ int main()
 			fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
 			lua_pop(L, 1);
 		}
-		luabind::env_init(L);
 
 		int res = luabind::call_function<int>(L, "luabind_test.func1", 3, 5);
 		luabind::call_function(L, "print", "luabind_test.func1(3, 5)=", res);
 		res = luabind::call_function<int>(L, "luabind_test.group.func1", 3, 5);
 		luabind::call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
 
-		char input_buf[65536];
+		/*char input_buf[65536];
 		while (true)
 		{
 			printf("LUA>");
@@ -160,7 +158,7 @@ int main()
 				fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
 				lua_pop(L, 1);
 			}
-		}
+		}*/
 		lua_close(L);
 		L = nullptr;
 	}

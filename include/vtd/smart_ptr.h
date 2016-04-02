@@ -67,7 +67,7 @@ namespace vtd
 		}
 
 	private:
-		std::atomic_size_t ref_count;
+		std::atomic_int ref_count;
 	};
 
 	template <class _Ty>
@@ -218,3 +218,7 @@ namespace vtd
 
 	template<class _Ty> const smart_ptr<_Ty> smart_ptr<_Ty>::_null = nullptr;
 }
+
+#define vtd_smart_ptr(classname)										\
+	class classname;													\
+	typedef vtd::smart_ptr<classname> classname##_ptr

@@ -210,11 +210,8 @@ namespace vtd
 #define vtd_rtti_impl(classname,...) \
 	const vtd::rtti::select<classname,##__VA_ARGS__>::type classname::_rtti(#classname)
 
-#define vtd_is_exact_kind_of(classname, obj) \
-	vtd::rtti::base::is_exact_kind_of<classname>(obj)
+#define vtd_is_exact_kind_of vtd::rtti::base::is_exact_kind_of
 
-#define vtd_is_kind_of(classname, obj) \
-	vtd::rtti::base::is_kind_of<classname>(obj)
+#define vtd_is_kind_of vtd::rtti::base::is_exact_kind_of
 
-#define vtd_dynamic_cast(classname, obj) \
-	vtd::rtti::base::_dynamic_cast<classname>(obj)
+#define vtd_dynamic_cast vtd::rtti::base::_dynamic_cast
