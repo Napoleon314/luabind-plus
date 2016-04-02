@@ -31,6 +31,7 @@
 #pragma once
 
 #include "utility.h"
+#include <string.h>
 
 namespace vtd
 {

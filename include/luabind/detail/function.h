@@ -93,7 +93,7 @@ namespace luabind
 		}
 		if (lua_pcall(L, num_params, param_getter<_Ret>::stack_count, 0))
 		{
-			LB_LOG_E(lua_tostring(L, -1));
+			LB_LOG_E("%s", lua_tostring(L, -1));
 			return default_value<_Ret>::make();
 		}
 		if (param_getter<_Ret>::test(L, -param_getter<_Ret>::stack_count))
