@@ -37,7 +37,8 @@ namespace luabind
 	inline int push_func_lname(lua_State* L, const char* s, size_t len)
 	{
 		vtd::buffer_holder<char> h(len + 1);
-		strcpy(h.buffer, s);
+		memcpy(h.buffer, s, len);
+		h.buffer[len] = 0;
 		char* context;
 		int top  = lua_gettop(L);
 		lua_pushglobaltable(L);
@@ -75,7 +76,7 @@ namespace luabind
 	_Ret call_function(lua_State* L, const char* func,
 		_Types... pak) noexcept
 	{		
-		holder(L);
+		holder h(L);
 		if (push_func_name(L, func) != 1)
 		{
 			LB_LOG_W("%s is not a vaild function", func);
@@ -88,7 +89,7 @@ namespace luabind
 			LB_LOG_W("call function %s without correct params", func);
 			return default_value<_Ret>::make();
 		}
-		if (lua_pcallk(L, num_params, param_getter<_Ret>::stack_count, nullptr))
+		if (lua_pcall(L, num_params, param_getter<_Ret>::stack_count, 0))
 		{
 			LB_LOG_E(lua_tostring(L, -1));
 			return default_value<_Ret>::make();

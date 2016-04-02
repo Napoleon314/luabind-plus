@@ -142,6 +142,19 @@ int main()
 			fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
 			lua_pop(L, 1);
 		}
+
+		/*{
+			luabind::holder h(L);
+			if (luabind::push_func_name(L, "pcallk_test") == 1)
+			{
+				if (!lua_pcallk(L, 0, 1, 0))
+				{
+					int top = lua_gettop(L);
+					top = 0;
+				}
+			}
+		}		*/
+
 		char input_buf[65536];
 		while (true)
 		{
