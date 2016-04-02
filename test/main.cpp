@@ -143,18 +143,10 @@ int main()
 			lua_pop(L, 1);
 		}
 
-		/*{
-			luabind::holder h(L);
-			if (luabind::push_func_name(L, "pcallk_test") == 1)
-			{
-				if (!lua_pcallk(L, 0, 1, 0))
-				{
-					int top = lua_gettop(L);
-					top = 0;
-				}
-			}
-		}		*/
-
+		int res = luabind::call_function<int>(L, "luabind_test.func1", 3, 5);
+		luabind::call_function(L, "print", "luabind_test.func1(3, 5)=", res);
+		res = luabind::call_function<int>(L, "luabind_test.group.func1", 3, 5);
+		luabind::call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
 		char input_buf[65536];
 		while (true)
 		{

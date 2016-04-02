@@ -44,27 +44,4 @@ namespace vtd
 			return (_Left);
 		}
 	};
-
-	template <class _Ty>
-	struct buffer_holder
-	{
-		buffer_holder(size_t n)
-		{
-			if (n)
-			{
-				buffer = (_Ty*)malloc(n * sizeof(_Ty));
-			}
-		}
-
-		~buffer_holder()
-		{
-			if (buffer)
-			{
-				free(buffer);
-				buffer = nullptr;
-			}
-		}
-
-		_Ty* buffer = nullptr;
-	};
 }

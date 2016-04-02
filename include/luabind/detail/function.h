@@ -34,25 +34,32 @@
 
 namespace luabind
 {
-	inline int push_func_lname(lua_State* L, const char* s, size_t len)
+	inline int push_func_name(lua_State* L, const char* s)
 	{
-		vtd::buffer_holder<char> h(len + 1);
-		memcpy(h.buffer, s, len);
-		h.buffer[len] = 0;
-		char* context;
-		int top  = lua_gettop(L);
+		if (!s) return 0;
+		int top = lua_gettop(L);
 		lua_pushglobaltable(L);
-		char* temp = vtd::strtok(h.buffer, ".", &context);
-		while (temp)
+		const char* start = s;
+		const char* end = vtd::strchr(start, '.');
+		while (start)
 		{
-			if(lua_type(L, -1) != LUA_TTABLE)
+			if (lua_type(L, -1) != LUA_TTABLE)
 			{
 				lua_pushnil(L);
 				break;
 			}
-			lua_pushstring(L, temp);
-			lua_gettable(L, -2);
-			temp = vtd::strtok<char>(nullptr, ".", &context);
+			if (end)
+			{
+				lua_pushlstring(L, start, end - start);
+				start = end + 1;
+				end = vtd::strchr(start, '.');
+			}
+			else
+			{
+				lua_pushstring(L, start);
+				start = nullptr;
+			}
+			lua_gettable(L, -2);			
 		}
 		if (lua_type(L, -1) == LUA_TFUNCTION)
 		{
@@ -65,11 +72,6 @@ namespace luabind
 			lua_settop(L, top);
 			return -1;
 		}
-	}
-
-	inline int push_func_name(lua_State* L, const char* s)
-	{
-		return push_func_lname(L, s, strlen(s));
 	}
 	
 	template <class _Ret = void, class... _Types>

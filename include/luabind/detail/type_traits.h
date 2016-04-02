@@ -414,6 +414,22 @@ namespace luabind
 	};
 
 	template <>
+	struct value_getter<void>
+	{
+		static constexpr int stack_count = 0;
+
+		static bool test(lua_State *L, int idx) noexcept
+		{
+			return true;
+		}
+
+		static void get(lua_State *L, int idx) noexcept
+		{
+			
+		}
+	};
+
+	template <>
 	struct value_getter<const char*>
 	{
 		static constexpr int stack_count = 1;
