@@ -5,7 +5,7 @@
 // -------------------------------------------------------------------------
 //  Module:      luabind_plus
 //  File name:   utility.h
-//  Created:     2016/04/01 by Albert D Yang
+//  Created:     2016/04/02 by Albert D Yang
 //  Description:
 // -------------------------------------------------------------------------
 //  Permission is hereby granted, free of charge, to any person obtaining a
@@ -28,43 +28,45 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+//#include <vtd/rtti.h>
 
-#include <utility>
-
-namespace vtd
+namespace luabind
 {
-	template<class _Ty>
-	struct identity
+	struct holder
 	{
-		typedef _Ty type;
-
-		const _Ty& operator()(const _Ty& _Left) const
+		holder(lua_State* _L) noexcept
+			: L(_L)
 		{
-			return (_Left);
+			top = lua_gettop(_L);
 		}
+
+		~holder() noexcept
+		{
+			lua_settop(L, top);
+		}
+
+	private:
+		lua_State* L = nullptr;
+		int top = 0;
+
 	};
 
-	template <class _Ty>
-	struct buffer_holder
+	struct checker
 	{
-		buffer_holder(size_t n)
+		checker(lua_State* _L) noexcept
+			: L(_L)
 		{
-			if (n)
-			{
-				buffer = (_Ty*)malloc(n * sizeof(_Ty));
-			}
+			top = lua_gettop(_L);
 		}
 
-		~buffer_holder()
+		~checker() noexcept
 		{
-			if (buffer)
-			{
-				free(buffer);
-				buffer = nullptr;
-			}
+			LB_ASSERT(top == lua_gettop(L));
 		}
 
-		_Ty* buffer = nullptr;
+	private:
+		lua_State* L = nullptr;
+		int top = 0;
+
 	};
 }

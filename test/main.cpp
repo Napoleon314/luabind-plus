@@ -38,9 +38,13 @@ extern "C"
 #	include <lua/lualib.h>
 #	include <lua/lauxlib.h>
 }
-#include <assert.h>
-#include <luabind/luabind.h>
 #include <stdio.h>
+#include <assert.h>
+#define LB_ASSERT assert
+#define LB_LOG_W printf
+#define LB_LOG_E printf
+#include <luabind/luabind.h>
+
 
 class A
 {
@@ -123,42 +127,8 @@ int lua_print(lua_State* L) noexcept
 	return 0;
 }
 
-enum Test
-{
-	TEST_A,
-	TEST_B,
-	TEST_C
-};
-
-enum Test2
-{
-	TEST2_A,
-	TEST2_B,
-	TEST2_C
-};
-
-namespace luabind
-{
-	template <>
-	struct can_get_enum<Test2> : std::false_type
-	{
-		
-	};
-
-	/*template <>
-	struct can_get_number<int> : std::false_type
-	{
-
-	};*/
-}
-
 int main()
 {
-	auto a = luabind::can_get<Test>::value;
-	auto b = luabind::can_get<Test2>::value;
-	auto c = luabind::can_get<int>::value;
-	auto d = luabind::can_get<void>::value;
-	auto e = luabind::can_get<std::tuple<int, Test2>>::value;
 	test_rtti();
 	lua_State* L = luaL_newstate();
 	if (L)
@@ -166,12 +136,18 @@ int main()
 		luaL_openlibs(L);
 		lua_pushcfunction(L, &lua_print);
 		lua_setglobal(L, "print");
+		int err = luaL_dofile(L, "startup.lua");
+		if (err)
+		{
+			fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
+			lua_pop(L, 1);
+		}
 		char input_buf[65536];
 		while (true)
 		{
 			printf("LUA>");
 			scanf("%s", input_buf);
-			int err = luaL_dostring(L, input_buf);
+			err = luaL_dostring(L, input_buf);
 			if (err)
 			{
 				fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));

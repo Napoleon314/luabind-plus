@@ -30,30 +30,52 @@
 
 #pragma once
 
-#include "utility.h"
-#include "type_traits.h"
+#ifndef LB_ASSERT
+#define LB_ASSERT()
+#endif
+
+#ifndef LB_LOG_D
+#define LB_LOG_D()
+#endif
+
+#ifndef LB_LOG_I
+#define LB_LOG_I()
+#endif
+
+#ifndef LB_LOG_W
+#define LB_LOG_W()
+#endif
+
+#ifndef LB_LOG_E
+#define LB_LOG_E()
+#endif
+
+#include "detail/utility.h"
+#include "detail/type_traits.h"
+#include "detail/function.h"
 
 namespace luabind
 {
-	template <class _Ty>
-	struct param_getter
-	{
-		static constexpr int stack_count = 0;
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			static_assert(can_get<_Ty>::value,
-				"type is not supported for get in lua");
-			return false;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			static_assert(can_get<_Ty>::value,
-				"type is not supported for get in lua");
-			return default_maker<_Ty>::make();
-		}
-
-	};
+	
 
 }
+
+#ifdef LB_ASSERT
+#undef LB_ASSERT
+#endif
+
+#ifdef LB_LOG_D
+#undef LB_LOG_D
+#endif
+
+#ifdef LB_LOG_I
+#undef LB_LOG_I
+#endif
+
+#ifdef LB_LOG_W
+#undef LB_LOG_W
+#endif
+
+#ifdef LB_LOG_E
+#undef LB_LOG_E
+#endif
