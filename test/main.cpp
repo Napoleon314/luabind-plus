@@ -147,33 +147,9 @@ int main()
 		int res = call_function<int>(L, "luabind_test.func1", 3, 5);
 		call_function(L, "print", "luabind_test.func1(3, 5)=", res);
 		res = call_function<int>(L, "luabind_test.group.func1", 3, 5);
-		call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
-
-		//auto tu = type_traits<tuple<int, void*>>::stack_count;
-		//tu = type_traits<char*>::stack_count;
-		//bool test = can_push_pak<int, int, A>::value;
-
-		//auto tup = make_tuple(1, 0.9, "test");
-
-		int add = type_traits<lua_CFunction>::push(L, lua_print);
-		//int top = lua_gettop(L);
-
-		//tup = type_traits<decltype(tup)>::get(L, 1);
-
-		/*int top = lua_gettop(L);
-		lua_pushinteger(L, 9);
-		top = lua_gettop(L);
-		object o(L, -1);
-		int i = o.get<int>();
-		top = lua_gettop(L);
-		lua_pop(L, 1);
-		o.set(L, 9);
-		i = o.get<int>();
-		top = lua_gettop(L);*/
+		call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);		
 
 		object o = globals(L)["t"];
-		//const char* a = o["a"];
-		//int b = o[2];
 
 		o.foreach([](lua_State* L) noexcept
 		{
@@ -183,19 +159,6 @@ int main()
 			lua_pushvalue(L, -3);
 			lua_pcall(L, 2, 1, 0);
 		});
-
-
-
-		//bool ttt = std::is_arithmetic<char>::value;
-
-		//auto def = type_traits<A*>::make_default();
-		
-		//int i1 = a.get(0);
-		//int i2 = o.gettable("a", 0);
-		//assert(i1 == i2);
-
-		//int top = lua_gettop(L);
-		//bool a = o.is_table();
 
 		/*char input_buf[65536];
 		while (true)
@@ -208,8 +171,7 @@ int main()
 				fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
 				lua_pop(L, 1);
 			}
-		}*/
-		
+		}*/	
 
 
 		lua_close(L);
