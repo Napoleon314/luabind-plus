@@ -380,7 +380,7 @@ namespace luabind
 			return 1;
 		}
 
-		static char* make_default() noexcept
+		static const char* make_default() noexcept
 		{
 			return "";
 		}

@@ -160,8 +160,8 @@ int main()
 		top = lua_gettop(L);*/
 
 		object o = globals(L)["t"];
-		const char* a = o["a"];
-		int b = o[2];
+		//const char* a = o["a"];
+		//int b = o[2];
 
 		o.foreach([](lua_State* L) noexcept
 		{

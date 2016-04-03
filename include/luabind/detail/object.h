@@ -247,7 +247,7 @@ namespace luabind
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (type_traits<_Key>::push(parent->L, key) == 1)
 				{
-					if (type_traits<_Ty>::push(parent->L, val) == 1)
+					if (type_traits<_Val>::push(parent->L, val) == 1)
 					{
 						lua_settable(parent->L, -3);
 					}
@@ -308,7 +308,7 @@ namespace luabind
 			{
 				holder h(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
-				lua_rawget(parent->L, -1, key);
+				lua_rawgeti(parent->L, -1, key);
 				if (type_traits<_Ty>::test(parent->L, -1))
 				{
 					return type_traits<_Ty>::get(parent->L, -1);
