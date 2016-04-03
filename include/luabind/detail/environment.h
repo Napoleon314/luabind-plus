@@ -38,7 +38,7 @@ namespace luabind
 	{
 		lua_State* L = nullptr;
 
-		inline static int gc(lua_State* L) noexcept
+		inline static int __gc(lua_State* L) noexcept
 		{
 			env* e = *(env**)lua_touserdata(L, 1);
 			e->L = nullptr;
@@ -78,7 +78,7 @@ namespace luabind
 			*(env**)pvData = e;
 			lua_newtable(L);										//create metatable for env user data
 			lua_pushstring(L, "__gc");
-			lua_pushcfunction(L, &env::gc);
+			lua_pushcfunction(L, &env::__gc);
 			lua_rawset(L, -3);
 			lua_setmetatable(L, -2);								//set metatable for env user data
 			lua_rawseti(L, -2, 1);									//set env user data to [1]
