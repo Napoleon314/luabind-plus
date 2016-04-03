@@ -489,43 +489,6 @@ namespace luabind
 		}
 	};
 
-	/*template <>
-	struct can_get_value<object> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_push_value<object> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct value_getter<object>
-	{
-		static constexpr int stack_count = 1;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return (lua_type(L, idx) != LUA_TNIL);
-		}
-
-		static object get(lua_State *L, int idx) noexcept
-		{			 
-			return std::move(object(L, idx));
-		}
-	};
-
-	template <>
-	struct value_pusher<object>
-	{
-		static int push(lua_State *L, object val) noexcept
-		{
-			return val.push(L);
-		}
-	};*/
-
 	inline object newtable(lua_State* L) noexcept
 	{
 		holder h(L);

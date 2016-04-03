@@ -128,6 +128,7 @@ int lua_print(lua_State* L) noexcept
 
 int main()
 {
+	using namespace std;
 	using namespace luabind;
 	test_rtti();
 	lua_State* L = luaL_newstate();
@@ -147,6 +148,17 @@ int main()
 		call_function(L, "print", "luabind_test.func1(3, 5)=", res);
 		res = call_function<int>(L, "luabind_test.group.func1", 3, 5);
 		call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
+
+		//auto tu = type_traits<tuple<int, void*>>::stack_count;
+		//tu = type_traits<char*>::stack_count;
+		//bool test = can_push_pak<int, int, A>::value;
+
+		//auto tup = make_tuple(1, 0.9, "test");
+
+		int add = type_traits<lua_CFunction>::push(L, lua_print);
+		//int top = lua_gettop(L);
+
+		//tup = type_traits<decltype(tup)>::get(L, 1);
 
 		/*int top = lua_gettop(L);
 		lua_pushinteger(L, 9);

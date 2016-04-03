@@ -386,586 +386,130 @@ namespace luabind
 		}
 	};
 
-	/*template <class _Ty>
-	struct default_enum
-	{
-		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
-
-		static _Ty make() noexcept
-		{
-			return (_Ty)0;
-		}
-	};
-
-	template <class _Ty>
-	struct default_number
-	{
-		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
-
-		static _Ty make() noexcept
-		{
-			return (_Ty)0;
-		}
-	};
-
-	template <class _Ty>
-	struct default_object
-	{
-		static_assert(std::is_class<_Ty>::value, "_Ty is not a class or struct.");
-
-		static _Ty make() noexcept
-		{
-			return _Ty();
-		}
-	};
-
-	template <class _Ty>
-	struct default_value
-	{
-		static _Ty make() noexcept
-		{
-			return _Ty();
-		}
-	};
-
-	template <class _Ty>
-	struct default_maker : std::conditional < std::is_enum<_Ty>::value,
-		default_enum<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
-		default_number<_Ty>, typename std::conditional<std::is_class<_Ty>::value,
-		default_object<_Ty>, default_value<_Ty >> ::type>::type>::type
-	{
-
-	};
-
 	template <>
-	struct default_value<void>
+	struct value_ptr_traits<void*>
 	{
-		static void make() noexcept
-		{
+		static constexpr bool can_get = true;
 
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			return lua_type(L, idx) == LUA_TLIGHTUSERDATA;
+		}
+
+		static void* get(lua_State* L, int idx) noexcept
+		{
+			return lua_touserdata(L, idx);
+		}
+
+		static int push(lua_State* L, void* val) noexcept
+		{
+			lua_pushlightuserdata(L, val);
+			return 1;
+		}
+
+		static void* make_default() noexcept
+		{
+			return nullptr;
 		}
 	};
 
 	template <>
-	struct default_value<const char*>
+	struct value_ptr_traits<lua_CFunction>
 	{
-		static const char* make() noexcept
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
 		{
-			return "";
+			return lua_iscfunction(L, idx) ? true : false;
+		}
+
+		static lua_CFunction get(lua_State* L, int idx) noexcept
+		{
+			return lua_tocfunction(L, idx);
+		}
+
+		static int push(lua_State* L, lua_CFunction val) noexcept
+		{
+			lua_pushcfunction(L, val);
+			return 1;
+		}
+
+		static lua_CFunction make_default() noexcept
+		{
+			return nullptr;
 		}
 	};
 
-	template <class _Ty>
-	struct default_value<_Ty*>
+	template <>
+	struct value_ptr_traits<lua_State*>
 	{
-		static _Ty* make() noexcept
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = false;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			return lua_type(L, idx) == LUA_TTHREAD;
+		}
+
+		static lua_State* get(lua_State* L, int idx) noexcept
+		{
+			return lua_tothread(L, idx);
+		}
+
+		static int push(lua_State* L, lua_CFunction val) noexcept
+		{
+			return 0;
+		}
+
+		static lua_State* make_default() noexcept
 		{
 			return nullptr;
 		}
 	};
 
 	template <class... _Types>
-	struct default_object<std::tuple<_Types...>>;
-
-	template <>
-	struct default_object<std::tuple<>>
-	{
-		static std::tuple<> make() noexcept
-		{
-			return std::tuple<>();
-		}
-	};
-
-	template <class _This, class... _Rest>
-	struct default_object<std::tuple<_This, _Rest...>>
-	{
-		static std::tuple<_This, _Rest...> make() noexcept
-		{
-			return std::tuple_cat(std::make_tuple(default_maker<_This>::make()),
-				default_maker<std::tuple<_Rest...>>::make());
-		}
-	};
-
-	template <class _Ty>
-	struct can_get_enum : std::true_type
-	{
-		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
-	};
-
-	template <class _Ty>
-	struct can_push_enum : std::true_type
-	{
-		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
-		typedef std::true_type type1;
-	};
-
-	template <class _Ty>
-	struct can_get_number : std::true_type
-	{
-		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
-	};
-
-	template <class _Ty>
-	struct can_push_number : std::true_type
-	{
-		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
-	};
-
-	template <class _Ty>
-	struct can_get_value : std::false_type
-	{
-		
-	};
-
-	template <class _Ty>
-	struct can_push_value : std::false_type
-	{
-		
-	};
-
-	template <class _Ty>
-	struct can_get : std::conditional < std::is_enum<_Ty>::value,
-		can_get_enum<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
-		can_get_number<_Ty>, can_get_value<_Ty >> ::type> ::type
-	{
-
-	};
-
-	template <class _Ty>
-	struct can_push : std::conditional < std::is_enum<_Ty>::value,
-		can_push_enum<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
-		can_push_number<_Ty>, can_push_value<_Ty >> ::type> ::type
-	{
-
-	};
-
-	template <>
-	struct can_get_value<void> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_get_value<bool> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_push_value<bool> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_get_value<void*> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_push_value<void*> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_get_value<lua_CFunction> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_push_value<lua_CFunction> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_get_value<lua_State*> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_get_value<const char*> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_push_value<const char*> : std::true_type
-	{
-
-	};
-
-	template <>
-	struct can_push_value<char*> : std::true_type
-	{
-
-	};
+	struct can_get_pak;
 
 	template <class... _Types>
-	struct can_get_value<std::tuple<_Types...>>;
-
-	template <class... _Types>
-	struct can_push_value<std::tuple<_Types...>>;
+	struct can_push_pak;
 
 	template <>
-	struct can_get_value<std::tuple<>> : std::true_type
+	struct can_get_pak<> : std::true_type
 	{
 
 	};
 
 	template <>
-	struct can_push_value<std::tuple<>> : std::true_type
+	struct can_push_pak<> : std::true_type
 	{
 
 	};
 
 	template <class _This, class... _Rest>
-	struct can_get_value<std::tuple<_This, _Rest...>>
-		: std::conditional<can_get<_This>::value && can_get<std::tuple<_Rest...>>::value,
+	struct can_get_pak<_This, _Rest...>
+		: std::conditional<type_traits<_This>::can_get && can_get_pak<_Rest...>::value,
 		std::true_type, std::false_type>::type
 	{
 
 	};
 
 	template <class _This, class... _Rest>
-	struct can_push_value<std::tuple<_This, _Rest...>>
-		: std::conditional<can_push<_This>::value && can_push<std::tuple<_Rest...>>::value,
+	struct can_push_pak<_This, _Rest...>
+		: std::conditional<type_traits<_This>::can_push && can_push_pak<_Rest...>::value,
 		std::true_type, std::false_type>::type
 	{
 
-	};
-
-	template <class _Ty>
-	struct value_getter
-	{
-
-	};
-
-	template <class _Ty>
-	struct value_pusher
-	{
-
-	};
-
-	template <class _Ty>
-	struct enum_getter
-	{
-		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
-
-		static constexpr int stack_count = 1;
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return lua_type(L, idx) == LUA_TNUMBER;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			return (_Ty)lua_tointeger(L, idx);
-		}
-	};
-
-	template <class _Ty>
-	struct enum_pusher
-	{
-		static_assert(std::is_enum<_Ty>::value, "_Ty is not a enum.");
-
-		static int push(lua_State* L, _Ty val) noexcept
-		{			
-			lua_pushinteger(L, val);
-			return 1;
-		}
-	};
-
-	struct bool_getter
-	{
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return lua_type(L, idx) == LUA_TBOOLEAN;
-		}
-
-		static bool get(lua_State* L, int idx) noexcept
-		{
-			return lua_toboolean(L, idx) ? true : false;
-		}
-	};
-
-	struct bool_pusher
-	{
-		static int push(lua_State* L, bool val) noexcept
-		{
-			lua_pushboolean(L, val ? 1 : 0);
-			return 1;
-		}
-	};
-
-	template <class _Ty>
-	struct integer_getter
-	{
-		static_assert(std::is_integral<_Ty>::value, "_Ty is not a integer.");
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return lua_type(L, idx) == LUA_TNUMBER;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			return (_Ty)lua_tointeger(L, idx);
-		}
-	};
-
-	template <class _Ty>
-	struct integer_pusher
-	{
-		static_assert(std::is_integral<_Ty>::value, "_Ty is not a integer.");
-
-		static int push(lua_State* L, _Ty val) noexcept
-		{
-			lua_pushinteger(L, val);
-			return 1;
-		}
-	};
-
-	template <class _Ty>
-	struct float_getter
-	{
-		static_assert(std::is_floating_point<_Ty>::value, "_Ty is not a float.");
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return lua_type(L, idx) == LUA_TNUMBER;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			return (_Ty)lua_tonumber(L, idx);
-		}
-	};
-
-	template <class _Ty>
-	struct float_pusher
-	{
-		static_assert(std::is_floating_point<_Ty>::value, "_Ty is not a float.");
-
-		static int push(lua_State* L, _Ty val) noexcept
-		{
-			lua_pushnumber(L, val);
-			return 1;
-		}
-	};
-
-	template <class _Ty>
-	struct number_getter : std::conditional < std::is_same<_Ty, bool>::value,
-		bool_getter, typename std::conditional < std::is_integral<_Ty>::value,
-		integer_getter<_Ty>, typename std::conditional <std::is_floating_point<_Ty>::value,
-		float_getter<_Ty>, value_getter<_Ty >> ::type> ::type> ::type
-	{
-		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
-		static constexpr int stack_count = 1;
-	};
-
-	template <class _Ty>
-	struct number_pusher : std::conditional < std::is_same<_Ty, bool>::value,
-		bool_pusher, typename std::conditional < std::is_integral<_Ty>::value,
-		integer_pusher<_Ty>, typename std::conditional <std::is_floating_point<_Ty>::value,
-		float_pusher<_Ty>, value_pusher<_Ty >> ::type> ::type> ::type
-	{
-		static_assert(std::is_arithmetic<_Ty>::value, "_Ty is not a number.");
-	};
-
-	template <class _Ty>
-	struct param_getter : std::conditional < std::is_enum<_Ty>::value,
-		enum_getter<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
-		number_getter<_Ty>, value_getter<_Ty >> ::type> ::type
-	{
-
-	};
-
-	template <class _Ty>
-	struct param_pusher : std::conditional < std::is_enum<_Ty>::value,
-		enum_pusher<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
-		number_pusher<_Ty>, value_pusher<_Ty >> ::type> ::type
-	{
-
-	};
-
-	template <>
-	struct value_getter<void>
-	{
-		static constexpr int stack_count = 0;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return true;
-		}
-
-		static void get(lua_State *L, int idx) noexcept
-		{
-			
-		}
-	};
-
-	template <>
-	struct value_getter<void*>
-	{
-		static constexpr int stack_count = 1;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return (lua_type(L, idx) == LUA_TLIGHTUSERDATA);
-		}
-
-		static void* get(lua_State *L, int idx) noexcept
-		{
-			return lua_touserdata(L, idx);
-		}
-	};
-
-	template <>
-	struct value_pusher<void*>
-	{
-		static int push(lua_State *L, void* val) noexcept
-		{
-			if (val)
-			{
-				lua_pushlightuserdata(L, val);
-				return 1;
-			}
-			return -1;
-		}
-	};
-
-	template <>
-	struct value_getter<lua_CFunction>
-	{
-		static constexpr int stack_count = 1;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return lua_iscfunction(L, idx) ? true : false;
-		}
-
-		static lua_CFunction get(lua_State *L, int idx) noexcept
-		{
-			return lua_tocfunction(L, idx);
-		}
-	};
-
-	template <>
-	struct value_pusher<lua_CFunction>
-	{
-		static int push(lua_State *L, lua_CFunction val) noexcept
-		{
-			if (val)
-			{
-				lua_pushcfunction(L, val);
-				return 1;
-			}
-			return -1;
-		}
-	};
-
-	template <>
-	struct value_getter<lua_State*>
-	{
-		static constexpr int stack_count = 1;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return (lua_type(L, idx) == LUA_TTHREAD);
-		}
-
-		static lua_State* get(lua_State *L, int idx) noexcept
-		{
-			return lua_tothread(L, idx);
-		}
-	};
-
-	template <>
-	struct value_getter<const char*>
-	{
-		static constexpr int stack_count = 1;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return (lua_type(L, idx) == LUA_TSTRING);
-		}
-
-		static const char* get(lua_State *L, int idx) noexcept
-		{
-			return lua_tostring(L, idx);
-		}
-	};
-	
-	template <>
-	struct value_pusher<const char*>
-	{
-		static int push(lua_State *L, const char* val) noexcept
-		{
-			if (val)
-			{
-				lua_pushstring(L, val);
-				return 1;
-			}
-			return -1;
-		}
-	};
-
-	template <>
-	struct value_pusher<char*>
-	{
-		static int push(lua_State *L, char* val) noexcept
-		{
-			if (val)
-			{
-				lua_pushstring(L, val);
-				return 1;
-			}
-			return -1;
-		}
-	};
-
-	template <>
-	struct value_getter<std::tuple<>>
-	{
-		static constexpr int stack_count = 0;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			return true;
-		}
-
-		static std::tuple<> get(lua_State *L, int idx) noexcept
-		{
-			return std::tuple<>();
-		}
-	};
-
-	template <class _This, class... _Rest>
-	struct value_getter<std::tuple<_This, _Rest...>>
-	{
-		static constexpr int stack_count = param_getter<_This>::stack_count + param_getter<std::tuple<_Rest...>>::stack_count;
-
-		static bool test(lua_State *L, int idx) noexcept
-		{
-			if (param_getter<_This>::test(L, idx))
-			{
-				return param_getter<std::tuple<_Rest...>>::test(L, idx + param_getter<_This>::stack_count);
-			}
-			return false;
-		}
-
-		static std::tuple<_This, _Rest...> get(
-			lua_State *L, int idx) noexcept
-		{
-			return std::tuple_cat(std::make_tuple(param_getter<_This>::get(L, idx)),
-				param_getter<std::tuple<_Rest...>>::get(L, idx + param_getter<_This>::stack_count));
-		}
 	};
 
 	template <int idx, int size, class... _Rest>
@@ -974,7 +518,7 @@ namespace luabind
 		static int push(lua_State *L, std::tuple<_Rest...> tuple) noexcept
 		{
 			auto val = std::get<idx>(tuple);
-			int i = param_pusher<decltype(val)>::push(L, val);
+			int i = type_traits<decltype(val)>::push(L, val);
 			if (i >= 0)
 			{
 				int j = tuple_pusher<idx + 1, size, _Rest...>::push(L, tuple);
@@ -996,15 +540,74 @@ namespace luabind
 		}
 	};
 
-	template <class... _Rest>
-	struct value_pusher<std::tuple<_Rest...>>
-	{
-		static int push(lua_State *L, std::tuple<_Rest...> val) noexcept
-		{
+	template <class... _Types>
+	struct object_traits<std::tuple<_Types...>>;
 
-			return tuple_pusher<0, sizeof...(_Rest), _Rest...>::push(L, val);
+	template <>
+	struct object_traits<std::tuple<>>
+	{
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 0;
+
+		static bool test(lua_State *L, int idx) noexcept
+		{
+			return true;
 		}
-	};*/
+
+		static std::tuple<> get(lua_State *L, int idx) noexcept
+		{
+			return std::tuple<>();
+		}
+
+		static int push(lua_State *L, std::tuple<>) noexcept
+		{
+			return 0;
+		}
+
+		static std::tuple<> make_default() noexcept
+		{
+			return std::tuple<>();
+		}
+	};
+
+	template <class _This, class... _Rest>
+	struct object_traits<std::tuple<_This, _Rest...>>
+	{
+		static constexpr bool can_get = can_get_pak<_This, _Rest...>::value;
+
+		static constexpr bool can_push = can_push_pak<_This, _Rest...>::value;
+
+		static constexpr int stack_count = type_traits<_This>::stack_count + type_traits<std::tuple<_Rest...>>::stack_count;
+
+		static bool test(lua_State *L, int idx) noexcept
+		{
+			if (type_traits<_This>::test(L, idx))
+			{
+				return type_traits<std::tuple<_Rest...>>::test(L, idx + type_traits<_This>::stack_count);
+			}
+			return false;
+		}
+
+		static std::tuple<_This, _Rest...> get(lua_State *L, int idx) noexcept
+		{
+			return std::tuple_cat(std::make_tuple(type_traits<_This>::get(L, idx)),
+				type_traits<std::tuple<_Rest...>>::get(L, idx + type_traits<_This>::stack_count));
+		}
+
+		static int push(lua_State *L, std::tuple<_This, _Rest...> val) noexcept
+		{
+			return tuple_pusher<0, sizeof...(_Rest) + 1, _This, _Rest...>::push(L, val);
+		}
+
+		static std::tuple<_This, _Rest...> make_default() noexcept
+		{
+			return std::tuple_cat(std::make_tuple(type_traits<_This>::make_default()),
+				type_traits<std::tuple<_Rest...>>::make_default());
+		}
+	};
 
 	template <class... _Types>
 	struct params_pusher;
