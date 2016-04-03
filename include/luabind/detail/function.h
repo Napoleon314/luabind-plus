@@ -82,28 +82,28 @@ namespace luabind
 		if (push_func_name(L, func) != 1)
 		{
 			LB_LOG_W("%s is not a vaild function", func);
-			return default_value<_Ret>::make();
+			return type_traits<_Ret>::make_default();
 		}
 		LB_ASSERT(lua_type(L, -1) == LUA_TFUNCTION);
 		int num_params = params_pusher<_Types...>::push(L, pak...);
 		if (num_params < 0)
 		{
 			LB_LOG_W("call function %s without correct params", func);
-			return default_value<_Ret>::make();
+			return type_traits<_Ret>::make_default();
 		}
-		if (lua_pcall(L, num_params, param_getter<_Ret>::stack_count, 0))
+		if (lua_pcall(L, num_params, type_traits<_Ret>::stack_count, 0))
 		{
 			LB_LOG_E("%s", lua_tostring(L, -1));
-			return default_value<_Ret>::make();
+			return type_traits<_Ret>::make_default();
 		}
-		if (param_getter<_Ret>::test(L, -param_getter<_Ret>::stack_count))
+		if (type_traits<_Ret>::test(L, -type_traits<_Ret>::stack_count))
 		{
-			return param_getter<_Ret>::get(L, -param_getter<_Ret>::stack_count);
+			return type_traits<_Ret>::get(L, -type_traits<_Ret>::stack_count);
 		}
 		else
 		{
 			LB_LOG_E("call function %s with wrong return", func);
-			return default_value<_Ret>::make();
+			return type_traits<_Ret>::make_default();
 		}
 	}
 }

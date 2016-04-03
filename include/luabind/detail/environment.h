@@ -49,20 +49,28 @@ namespace luabind
 
 	typedef vtd::smart_ptr<env> env_ptr;
 
+	lua_State* get_main(lua_State* L) noexcept
+	{
+		holder h(L);
+		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
+		LB_ASSERT(lua_type(L, -1) == LUA_TTHREAD);
+		return lua_tothread(L, -1);
+	}
+
 	inline env* get_env(lua_State* L) noexcept
 	{
+		L = get_main(L);
 		holder h(L);
 		lua_pushglobaltable(L);
 		if (lua_getmetatable(L, -1))
 		{
-			lua_pushstring(L, "__luabind_env");
-			lua_rawget(L, -2);
+			lua_rawgeti(L, -1, 1);
+			LB_ASSERT(lua_type(L, -1) == LUA_TUSERDATA);
 			return *(env**)lua_touserdata(L, -1);
 		}
 		else
 		{
 			lua_newtable(L);										//metatable for global
-			lua_pushstring(L, "__luabind_env");
 			env* e = new env();										//create env
 			e->inc();
 			e->L = L;
@@ -73,7 +81,7 @@ namespace luabind
 			lua_pushcfunction(L, &env::gc);
 			lua_rawset(L, -3);
 			lua_setmetatable(L, -2);								//set metatable for env user data
-			lua_rawset(L, -3);										//set env user data to __luabind_env
+			lua_rawseti(L, -2, 1);									//set env user data to [1]
 			lua_setmetatable(L, -2);								//set metatable for global
 			return e;
 		}

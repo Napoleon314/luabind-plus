@@ -128,6 +128,7 @@ int lua_print(lua_State* L) noexcept
 
 int main()
 {
+	using namespace luabind;
 	test_rtti();
 	lua_State* L = luaL_newstate();
 	if (L)
@@ -142,10 +143,47 @@ int main()
 			lua_pop(L, 1);
 		}
 
-		int res = luabind::call_function<int>(L, "luabind_test.func1", 3, 5);
-		luabind::call_function(L, "print", "luabind_test.func1(3, 5)=", res);
-		res = luabind::call_function<int>(L, "luabind_test.group.func1", 3, 5);
-		luabind::call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
+		int res = call_function<int>(L, "luabind_test.func1", 3, 5);
+		call_function(L, "print", "luabind_test.func1(3, 5)=", res);
+		res = call_function<int>(L, "luabind_test.group.func1", 3, 5);
+		call_function(L, "print", "luabind_test.group.func1(3, 5)=", res);
+
+		/*int top = lua_gettop(L);
+		lua_pushinteger(L, 9);
+		top = lua_gettop(L);
+		object o(L, -1);
+		int i = o.get<int>();
+		top = lua_gettop(L);
+		lua_pop(L, 1);
+		o.set(L, 9);
+		i = o.get<int>();
+		top = lua_gettop(L);*/
+
+		object o = globals(L)["t"];
+		const char* a = o["a"];
+		int b = o[2];
+
+		o.foreach([](lua_State* L) noexcept
+		{
+			holder h(L);
+			push_func_name(L, "print");
+			lua_pushvalue(L, -3);
+			lua_pushvalue(L, -3);
+			lua_pcall(L, 2, 1, 0);
+		});
+
+
+
+		//bool ttt = std::is_arithmetic<char>::value;
+
+		//auto def = type_traits<A*>::make_default();
+		
+		//int i1 = a.get(0);
+		//int i2 = o.gettable("a", 0);
+		//assert(i1 == i2);
+
+		//int top = lua_gettop(L);
+		//bool a = o.is_table();
 
 		/*char input_buf[65536];
 		while (true)
@@ -159,6 +197,9 @@ int main()
 				lua_pop(L, 1);
 			}
 		}*/
+		
+
+
 		lua_close(L);
 		L = nullptr;
 	}
