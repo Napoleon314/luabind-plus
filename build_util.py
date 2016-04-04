@@ -349,8 +349,8 @@ def build_project(name, build_path, build_info, compiler_info, need_install = Fa
 	if ("vc" == build_info.compiler_name) and (not compiler_info.is_windows_runtime):
 		toolset_name = "-T %s" % compiler_info.toolset
 
-	if build_info.compiler_name != "vc":
-		additional_options += " -DKLAYGE_ARCH_NAME:STRING=\"%s\"" % compiler_info.arch
+	#if build_info.compiler_name != "vc":
+	#	additional_options += " -DKLAYGE_ARCH_NAME:STRING=\"%s\"" % compiler_info.arch
 	if "android" == build_info.target_platform:
 		additional_options += " -DCMAKE_TOOLCHAIN_FILE=\"%s/cmake/android.toolchain.cmake\"" % curdir
 		additional_options += " -DANDROID_NATIVE_API_LEVEL=%d" % build_info.target_api_level
