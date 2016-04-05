@@ -135,9 +135,22 @@ int main()
 	if (L)
 	{
 		luaL_openlibs(L);
+
+		module(L)[
+			name_space("luabind")[scope()]
+		];
+
+		module(L, "luabind")[
+			name_space("luabind")[scope()]
+		];
+
+		module(L)[scope()];
+
 		lua_pushcfunction(L, &lua_print);
 		lua_setglobal(L, "print");
-		int err = luaL_dofile(L, "startup.lua");
+		int err(0);
+
+		/*err = luaL_dofile(L, "startup.lua");
 		if (err)
 		{
 			fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
@@ -153,12 +166,20 @@ int main()
 
 		o.foreach([](lua_State* L) noexcept
 		{
-			holder h(L);
+			LUABIND_HOLD_STACK(L);
 			push_func_name(L, "print");
 			lua_pushvalue(L, -3);
 			lua_pushvalue(L, -3);
 			lua_pcall(L, 2, 1, 0);
-		});
+		});*/
+
+		
+		err = luaL_dofile(L, "module.lua");
+		if (err)
+		{
+			fprintf(stderr, "ERR>%s\n", lua_tostring(L, -1));
+			lua_pop(L, 1);
+		}
 
 		/*char input_buf[65536];
 		while (true)

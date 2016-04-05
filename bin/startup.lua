@@ -24,3 +24,15 @@ t = { 1, 2 , 3 }
 
 t.a = "abc"
 t.b = "def"
+
+co = coroutine.create(function (a, b)
+	print("in co", a, b)
+	a,b = coroutine.yield(a + 2, b + 2)
+	print("in co2", a, b)
+	return a + 2, b + 2
+end)
+
+d,e,f = coroutine.resume(co, 3, 5)
+print("out co", e, f)
+d,e,f = coroutine.resume(co, e, f)
+print("out co2", coroutine.resume(co, e, f))

@@ -78,7 +78,7 @@ namespace luabind
 	_Ret call_function(lua_State* L, const char* func,
 		_Types... pak) noexcept
 	{
-		holder h(L);
+		LUABIND_HOLD_STACK(L);
 		if (push_func_name(L, func) != 1)
 		{
 			LB_LOG_W("%s is not a vaild function", func);

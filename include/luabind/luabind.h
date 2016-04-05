@@ -50,17 +50,29 @@
 #define LB_LOG_E()
 #endif
 
+#ifndef LB_BUF_SIZE
+#define LB_BUF_SIZE (256)
+#endif
+
+#ifdef _DEBUG
+#define LB_ASSERT_EQ(e,v) LB_ASSERT(e == v)
+#else
+#define LB_ASSERT_EQ(e) e
+#endif
+
 #include "detail/utility.h"
 #include "detail/type_traits.h"
 #include "detail/environment.h"
 #include "detail/function.h"
 #include "detail/object.h"
+#include "detail//scope.h"
 
 namespace luabind
 {
-	
 
 }
+
+#undef LB_ASSERT_EQ
 
 #ifdef LB_ASSERT
 #undef LB_ASSERT
@@ -80,4 +92,8 @@ namespace luabind
 
 #ifdef LB_LOG_E
 #undef LB_LOG_E
+#endif
+
+#ifdef LB_BUF_SIZE
+#undef LB_BUF_SIZE
 #endif

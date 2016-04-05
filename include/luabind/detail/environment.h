@@ -32,6 +32,10 @@
 
 #include <vtd/smart_ptr.h>
 
+#ifndef LB_ENV_INDEX
+#define LB_ENV_INDEX (2)
+#endif
+
 namespace luabind
 {
 	struct env : vtd::ref_obj
@@ -51,7 +55,7 @@ namespace luabind
 
 	lua_State* get_main(lua_State* L) noexcept
 	{
-		holder h(L);
+		LUABIND_HOLD_STACK(L);
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 		LB_ASSERT(lua_type(L, -1) == LUA_TTHREAD);
 		return lua_tothread(L, -1);
@@ -60,11 +64,11 @@ namespace luabind
 	inline env* get_env(lua_State* L) noexcept
 	{
 		L = get_main(L);
-		holder h(L);
+		LUABIND_HOLD_STACK(L);
 		lua_pushglobaltable(L);
 		if (lua_getmetatable(L, -1))
 		{
-			lua_rawgeti(L, -1, 1);
+			lua_rawgeti(L, -1, LB_ENV_INDEX);
 			LB_ASSERT(lua_type(L, -1) == LUA_TUSERDATA);
 			return *(env**)lua_touserdata(L, -1);
 		}
@@ -81,9 +85,13 @@ namespace luabind
 			lua_pushcfunction(L, &env::__gc);
 			lua_rawset(L, -3);
 			lua_setmetatable(L, -2);								//set metatable for env user data
-			lua_rawseti(L, -2, 1);									//set env user data to [1]
+			lua_rawseti(L, -2, LB_ENV_INDEX);									//set env user data to [1]
 			lua_setmetatable(L, -2);								//set metatable for global
 			return e;
 		}
 	}
 }
+
+#ifdef LB_ENV_INDEX
+#undef LB_ENV_INDEX
+#endif

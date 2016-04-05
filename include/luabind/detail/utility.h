@@ -70,3 +70,10 @@ namespace luabind
 
 	};
 }
+
+#define LUABIND_HOLD_STACK(L) luabind::holder holder_object(L)
+#ifdef _DEBUG
+#define LUABIND_CHECK_STACK(L) luabind::checker checker_object(L)
+#else
+#define LUABIND_CHECK_STACK(L)
+#endif

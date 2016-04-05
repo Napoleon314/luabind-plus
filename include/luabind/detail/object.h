@@ -100,7 +100,7 @@ namespace luabind
 			parent = get_env(L);
 			if (parent->L)
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_pushvalue(parent->L, idx);
 				if (lua_type(parent->L, -1) == LUA_TNONE)
 				{
@@ -119,7 +119,7 @@ namespace luabind
 			parent = copy.parent;
 			if (parent->L && copy.handle)
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, copy.handle);
 				handle = luaL_ref(parent->L, LUA_REGISTRYINDEX);
 			}
@@ -147,7 +147,7 @@ namespace luabind
 			parent = get_env(L);
 			if (parent->L)
 			{
-				holder h(L);
+				LUABIND_HOLD_STACK(L);
 				int n = type_traits<_Ty>::push(L, val);
 				if (!n)
 				{
@@ -168,7 +168,7 @@ namespace luabind
 				"_Ty has to occupy 1 stack");
 			if (parent && parent->L && handle)
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (type_traits<_Ty>::test(parent->L, -1))
 				{
@@ -182,7 +182,7 @@ namespace luabind
 		{
 			if (parent && parent->L && handle)
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				return lua_type(parent->L, -1);
 			}
@@ -221,7 +221,7 @@ namespace luabind
 				"_Val and _Key have to occupy 1 stack");
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (type_traits<_Key>::push(parent->L, key) == 1)
 				{
@@ -243,7 +243,7 @@ namespace luabind
 				"_Val and _Key have to occupy 1 stack");
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (type_traits<_Key>::push(parent->L, key) == 1)
 				{
@@ -259,7 +259,7 @@ namespace luabind
 		{
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_pushstring(parent->L, key);
 				lua_rawget(parent->L, -2);
@@ -272,7 +272,7 @@ namespace luabind
 		{
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_rawgeti(parent->L, -1, key);
 				return object(parent->L, -1);
@@ -287,7 +287,7 @@ namespace luabind
 				"_Ty has to occupy 1 stack");
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_pushstring(parent->L, key);
 				lua_rawget(parent->L, -2);
@@ -306,7 +306,7 @@ namespace luabind
 				"_Ty has to occupy 1 stack");
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_rawgeti(parent->L, -1, key);
 				if (type_traits<_Ty>::test(parent->L, -1))
@@ -321,7 +321,7 @@ namespace luabind
 		{
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_pushstring(parent->L, key);
 				if (obj.push(parent->L) == 1)
@@ -335,7 +335,7 @@ namespace luabind
 		{
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (obj.push(parent->L) == 1)
 				{
@@ -351,7 +351,7 @@ namespace luabind
 				"_Ty has to occupy 1 stack");
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_pushstring(parent->L, key);
 				if (type_traits<_Ty>::push(parent->L, val) == 1)
@@ -368,7 +368,7 @@ namespace luabind
 				"_Ty has to occupy 1 stack");
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (type_traits<_Ty>::push(parent->L, val) == 1)
 				{
@@ -381,7 +381,7 @@ namespace luabind
 		{
 			if (is_table())
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				if (lua_getmetatable(parent->L, -1))
 				{
@@ -399,7 +399,7 @@ namespace luabind
 			case LUA_TUSERDATA:
 				if (obj.is_table())
 				{
-					holder h(parent->L);
+					LUABIND_HOLD_STACK(parent->L);
 					lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 					if (obj.push(parent->L) == 1)
 					{
@@ -416,7 +416,7 @@ namespace luabind
 		{
 			if (parent && parent->L && handle)
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				return lua_rawlen(parent->L, -1);
 			}
@@ -427,7 +427,7 @@ namespace luabind
 		{
 			if (parent && parent->L && handle)
 			{
-				holder h(parent->L);
+				LUABIND_HOLD_STACK(parent->L);
 				lua_rawgeti(parent->L, LUA_REGISTRYINDEX, handle);
 				lua_pushnil(parent->L);
 				while (lua_next(parent->L, -2) != 0)
@@ -491,21 +491,21 @@ namespace luabind
 
 	inline object newtable(lua_State* L) noexcept
 	{
-		holder h(L);
+		LUABIND_HOLD_STACK(L);
 		lua_newtable(L);
 		return object(L, -1);
 	}
 
 	inline object globals(lua_State* L) noexcept
 	{
-		holder h(L);
+		LUABIND_HOLD_STACK(L);
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
 		return object(L, -1);
 	}
 
 	inline object mainthread(lua_State* L) noexcept
 	{
-		holder h(L);
+		LUABIND_HOLD_STACK(L);
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 		return object(L, -1);
 	}
