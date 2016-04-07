@@ -85,7 +85,7 @@ namespace luabind
 			virtual void enroll(lua_State*) const noexcept = 0;
 
 		private:
-			friend struct scope;
+            friend struct luabind::scope;
 			enrollment* next = nullptr;
 		};
 
@@ -401,7 +401,7 @@ namespace luabind
 	scope def(const char* name, _Func* func, _Types... pak)
 	{
 		static_assert(std::is_function<_Func>::value, "");
-		return def(name, std::function<std::remove_pointer<_Func>::type>(func), pak...);
+		return def(name, std::function<_Func>(func), pak...);
 	}
 }
 

@@ -200,7 +200,7 @@ int main()
 			}
 		}*/	
 
-		bool bbb = params_checker<int, char, float>::targets<char, float>::is_matched;
+		//bool bbb = params_checker<int, char, float>::targets<char, float>::is_matched;
 
 
 		lua_close(L);

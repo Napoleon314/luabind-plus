@@ -32,7 +32,7 @@
 
 namespace luabind
 {
-	template <class... _Types>
+	/*template <class... _Types>
 	struct params_checker;
 
 	template <>
@@ -52,7 +52,7 @@ namespace luabind
 		struct targets;
 
 		template <>
-		struct targets<>
+		struct targets<int>
 		{
 			static constexpr bool is_matched = false;
 		};
@@ -66,8 +66,8 @@ namespace luabind
 					? (std::is_same<_This, _This1>::value
 						&& params_checker<_Rest...>::targets<_Rest1...>::is_matched)
 					: false);	
-		};		
-	};
+		};
+	};*/
 
 	/*template <class _This1, class... _Rest1, int idx, class _This2, class... _Rest2>
 	struct params_checker
