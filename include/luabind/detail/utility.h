@@ -28,10 +28,16 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-//#include <vtd/rtti.h>
-
 namespace luabind
 {
+	enum RelatedIndex
+	{
+		INDEX_NOP,
+		INDEX_SCOPE,
+		INDEX_FUNC,
+		INDEX_MAX
+	};
+
 	struct holder
 	{
 		holder(lua_State* _L) noexcept
@@ -72,7 +78,7 @@ namespace luabind
 }
 
 #define LUABIND_HOLD_STACK(L) luabind::holder holder_object(L)
-#ifdef _DEBUG
+#ifndef NDEBUG
 #define LUABIND_CHECK_STACK(L) luabind::checker checker_object(L)
 #else
 #define LUABIND_CHECK_STACK(L)

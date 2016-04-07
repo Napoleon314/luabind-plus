@@ -149,7 +149,8 @@ int main()
 
 		module(L, "luabind")[
 			def_manual("print", &lua_print, 1, 2),
-			def("add", &add, 1, 2)
+			def("add", &add, 1),
+			def("add", &add, 2, 3)
 		];
 
 		lua_pushcfunction(L, &lua_print);
@@ -203,7 +204,6 @@ int main()
 		}*/	
 
 		//bool bbb = params_checker<int, char, float>::targets<char, float>::is_matched;
-
 
 		lua_close(L);
 		L = nullptr;

@@ -30,10 +30,6 @@
 
 #pragma once
 
-#ifndef LB_SCOPE_INDEX
-#define LB_SCOPE_INDEX (1)
-#endif
-
 namespace luabind
 {
 	struct scope;
@@ -117,33 +113,55 @@ namespace luabind
 			holder upvalues;
 		};
 
-		template <class _Func, class... _Types>
+		template <class _Shell, class... _Types>
 		struct cpp_func : enrollment
 		{
-			//static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
-			//typedef std::tuple<_Types...> holder;
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
 
-			cpp_func(const char* n, std::function<_Func>&& f, _Types... pak) noexcept
-				: name(n), func(f) {}
+			cpp_func(const char* n, _Shell& f, _Types... pak) noexcept
+				: name(n), func(std::move(f.func)), values(pak...) {}
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
-				/*LUABIND_HOLD_STACK(L);
-				lua_pushstring(L, name);
-				if (type_traits<holder>::can_push)
+				LUABIND_HOLD_STACK(L);				
+				if (lua_rawgeti(L, -2, INDEX_FUNC) != LUA_TTABLE)
 				{
-					if (type_traits<holder>::push(L, upvalues)
-						== type_traits<holder>::stack_count)
-					{
-						lua_pushcclosure(L, func, type_traits<holder>::stack_count);
-						lua_rawset(L, -3);
-					}
-				}*/
+					lua_pop(L, 1);
+					lua_newtable(L);					
+					lua_pushvalue(L, -1);					
+					lua_rawseti(L, -4, INDEX_FUNC);
+				}
+				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
+				lua_pushstring(L, name);
+				if (lua_rawget(L, -2) != LUA_TUSERDATA)
+				{
+					lua_pop(L, 1);
+					void* data = lua_newuserdata(L, sizeof(func_holder*));
+					*(func_holder**)data = create_func_holder(func, values);
+					lua_newtable(L);
+					lua_pushstring(L, "__gc");
+					lua_pushcfunction(L, &func_holder::__gc);
+					lua_rawset(L, -3);
+					lua_setmetatable(L, -2);
+					lua_pushstring(L, name);
+					lua_pushvalue(L, -2);
+					lua_rawset(L, -4);
+					lua_pushcclosure(L, &func_holder::entry, 1);
+					lua_pushstring(L, name);
+					lua_pushvalue(L, -2);
+					lua_rawset(L, -5);
+				}
+				else
+				{
+					func_holder* h = *(func_holder**)lua_touserdata(L, -1);
+					h->next = create_func_holder(func, values);
+				}
 			}
 
 			const char* name;
-			std::function<_Func> func;
-			//holder upvalues;
+			func_type func;
+			val_type values;
 		};
 	}
 
@@ -151,7 +169,7 @@ namespace luabind
 	{
 		enum Type
 		{
-			TYPE_NAMESPACE,
+			TYPE_NAMESPACE = 10,
 			TYPE_MAX
 		};
 
@@ -269,7 +287,7 @@ namespace luabind
 				{
 					lua_pop(L, 1);					
 					lua_pushinteger(L, scope::TYPE_NAMESPACE);
-					lua_rawseti(L, -2, LB_SCOPE_INDEX);
+					lua_rawseti(L, -2, INDEX_SCOPE);
 					lua_newtable(L);
 					lua_pushstring(L, "__newindex");
 					lua_pushvalue(L, -2);
@@ -280,8 +298,8 @@ namespace luabind
 					lua_rawset(L, -4);
 				}				
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-#				ifdef _DEBUG
-				lua_rawgeti(L, -2, LB_SCOPE_INDEX);
+#				ifndef NDEBUG
+				lua_rawgeti(L, -2, INDEX_SCOPE);
 				LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
 					&& lua_tointeger(L, -1) == scope::TYPE_NAMESPACE);
 				lua_pop(L, 1);
@@ -333,7 +351,7 @@ namespace luabind
 				{
 					lua_pop(L, 1);
 					lua_pushinteger(L, scope::TYPE_NAMESPACE);
-					lua_rawseti(L, -2, LB_SCOPE_INDEX);
+					lua_rawseti(L, -2, INDEX_SCOPE);
 					lua_newtable(L);
 					lua_pushstring(L, "__newindex");
 					lua_pushvalue(L, -2);
@@ -344,8 +362,8 @@ namespace luabind
 					lua_rawset(L, -4);
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-#				ifdef _DEBUG
-				lua_rawgeti(L, -2, LB_SCOPE_INDEX);
+#				ifndef NDEBUG
+				lua_rawgeti(L, -2, INDEX_SCOPE);
 				LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
 					&& lua_tointeger(L, -1) == scope::TYPE_NAMESPACE);
 				lua_pop(L, 1);
@@ -374,7 +392,7 @@ namespace luabind
 					{
 						lua_pop(L, 1);
 						lua_pushinteger(L, scope::TYPE_NAMESPACE);
-						lua_rawseti(L, -2, LB_SCOPE_INDEX);
+						lua_rawseti(L, -2, INDEX_SCOPE);
 						lua_newtable(L);
 						lua_pushstring(L, "__newindex");
 						lua_pushvalue(L, -2);
@@ -385,8 +403,8 @@ namespace luabind
 						lua_rawset(L, -4);
 					}
 					LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-#					ifdef _DEBUG
-					lua_rawgeti(L, -2, LB_SCOPE_INDEX);
+#					ifndef NDEBUG
+					lua_rawgeti(L, -2, INDEX_SCOPE);
 					LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
 						&& lua_tointeger(L, -1) == scope::TYPE_NAMESPACE);
 					lua_pop(L, 1);
@@ -409,31 +427,29 @@ namespace luabind
 		const char* name;
 	};
 
-	inline module_class module(lua_State* L, char const* name = nullptr)
+	inline module_class module(lua_State* L, char const* name = nullptr) noexcept
 	{
 		return module_class(L, name);
 	}
 
 	template <class... _Types>
-	scope def_manual(const char* name, lua_CFunction func, _Types... pak)
+	scope def_manual(const char* name, lua_CFunction func, _Types... pak) noexcept
 	{
 		return scope(new detail::manual_func<_Types...>(name, func, pak...));
 	}
 
 	template <class _Func, class... _Types>
-	scope def(const char* name, std::function<_Func> func, _Types... pak)
+	scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
 	{
-		return scope(new detail::cpp_func<_Func, _Types...>(name, std::move(func), pak...));
+		auto shell = create_func_shell<params_count((_Func*)nullptr)-(sizeof...(_Types))>(
+			std::move(func));
+		return scope(new detail::cpp_func<decltype(shell), _Types...>(name, shell, pak...));
 	}
 
 	template <class _Func, class... _Types>
-	scope def(const char* name, _Func* func, _Types... pak)
+	scope def(const char* name, _Func* func, _Types... pak) noexcept
 	{
 		static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
 		return def(name, std::function<_Func>(func), pak...);
 	}
 }
-
-#ifndef LB_SCOPE_INDEX
-#define LB_SCOPE_INDEX (2)
-#endif

@@ -30,8 +30,8 @@
 
 #pragma once
 
-#include <vtd/string.h>
 #include <functional>
+#include <vtd/string.h>
 
 namespace luabind
 {
@@ -108,25 +108,58 @@ namespace luabind
 		}
 	}
 
+	template <int idx, class _Ret, class... _Types>
+	struct func_shell
+	{
+		typedef std::function<_Ret(_Types...)> func_type;
+		typedef typename params_trimmer<idx, _Types...>::type val_type;
+
+		func_shell(func_type&& f) noexcept : func(f) {}
+
+		func_type func;
+	};
+
+	template <int idx, class _Ret, class... _Types>
+	inline func_shell<idx, _Ret, _Types...> create_func_shell(
+		std::function<_Ret(_Types...)>&& func) noexcept
+	{
+		return func_shell<idx, _Ret, _Types...>(std::move(func));
+	}
+
 	struct func_holder
 	{
-		virtual ~func_holder() noexcept = default;
+		virtual ~func_holder() noexcept
+		{
+			if (next)
+			{
+				delete next;
+				next = nullptr;
+			}
+		}
 
 		virtual int call(lua_State* L) noexcept = 0;
 
-		static int entry(lua_State* pkState) noexcept
+		static int __gc(lua_State* L) noexcept
 		{
+			func_holder* h = *(func_holder**)lua_touserdata(L, 1);
+			delete h;
 			return 0;
+		}
+
+		static int entry(lua_State* L) noexcept
+		{
+			func_holder* h = *(func_holder**)lua_touserdata(L, lua_upvalueindex(1));
+			return h->call(L);
 		}
 
 		func_holder* next = nullptr;
 	};
 
 	template <class _Func, class... _Types>
-	struct func_holder_impl
+	struct func_holder_impl : func_holder
 	{
-		func_holder_impl(std::function<_Func>&& f,
-			std::tuple<_Types...>&& v) noexcept
+		func_holder_impl(const std::function<_Func>& f,
+			const std::tuple<_Types...>& v) noexcept
 			: func(f), vals(v) {}
 
 		virtual int call(lua_State* L) noexcept
@@ -137,6 +170,13 @@ namespace luabind
 		std::function<_Func> func;
 		std::tuple<_Types...> vals;
 	};
+
+	template <class _Func, class... _Types>
+	func_holder* create_func_holder(const std::function<_Func>& func,
+		const std::tuple<_Types...>& vals) noexcept
+	{
+		return new func_holder_impl<_Func, _Types...>(func, vals);
+	}
 
 	//template <>
 	//struct function_enrollment : detail::enrollment
