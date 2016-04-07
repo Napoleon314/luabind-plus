@@ -203,6 +203,18 @@ int main()
 			}
 		}*/	
 
+		//float
+
+		tuple<const char*, int, short, float> ttt("hello", 0, 1, 5.5f);
+
+		//float& f = *(float*)&ttt;
+		std::pair<tuple<int, short, float>, const char*>& tp = 
+			
+			
+			*(std::pair<tuple<int, short, float>, const char*>*)&ttt;
+
+		//pair<float, tuple<const char*, int, int>>& bbb = *(pair<float, tuple<const char*, int, int>>*)&ttt;
+
 		//bool bbb = params_checker<int, char, float>::targets<char, float>::is_matched;
 
 		lua_close(L);
