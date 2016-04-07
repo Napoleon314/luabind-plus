@@ -4,8 +4,8 @@
 //  Copyright (c) 2016 Albert D Yang
 // -------------------------------------------------------------------------
 //  Module:      luabind_plus
-//  File name:   luabind.h
-//  Created:     2016/04/01 by Albert D Yang
+//  File name:   invoke.h
+//  Created:     2016/04/07 by Albert D Yang
 //  Description:
 // -------------------------------------------------------------------------
 //  Permission is hereby granted, free of charge, to any person obtaining a
@@ -30,71 +30,48 @@
 
 #pragma once
 
-#ifndef LB_ASSERT
-#define LB_ASSERT()
-#endif
-
-#ifndef LB_LOG_D
-#define LB_LOG_D()
-#endif
-
-#ifndef LB_LOG_I
-#define LB_LOG_I()
-#endif
-
-#ifndef LB_LOG_W
-#define LB_LOG_W()
-#endif
-
-#ifndef LB_LOG_E
-#define LB_LOG_E()
-#endif
-
-#ifndef LB_BUF_SIZE
-#define LB_BUF_SIZE (256)
-#endif
-
-#ifndef NDEBUG
-#define LB_ASSERT_EQ(e,v) LB_ASSERT(e == v)
-#else
-#define LB_ASSERT_EQ(e,v) e
-#endif
-
-#include "detail/utility.h"
-#include "detail/type_traits.h"
-#include "detail/environment.h"
-#include "detail/invoke.h"
-#include "detail/function.h"
-#include "detail/object.h"
-#include "detail/scope.h"
-
 namespace luabind
 {
+	template <class... _Types>
+	struct params_checker;
 
+	template <>
+	struct params_checker<>
+	{
+		template <class... _Targets>
+		struct targets
+		{
+			static constexpr bool is_matched = !(sizeof...(_Targets));
+		};
+	};
+
+	template <class _This, class... _Rest>
+	struct params_checker<_This, _Rest...>
+	{
+		template <class... _Types>
+		struct targets;
+
+		template <>
+		struct targets<>
+		{
+			static constexpr bool is_matched = false;
+		};
+
+		template <class _This1, class... _Rest1>
+		struct targets<_This1, _Rest1...>
+		{
+			static constexpr bool is_matched = (sizeof...(_Rest)) > (sizeof...(_Rest1))
+				? params_checker<_Rest...>::targets<_This1, _Rest1...>::is_matched
+				: ((sizeof...(_Rest)) == (sizeof...(_Rest1))
+					? (std::is_same<_This, _This1>::value
+						&& params_checker<_Rest...>::targets<_Rest1...>::is_matched)
+					: false);	
+		};		
+	};
+
+	/*template <class _This1, class... _Rest1, int idx, class _This2, class... _Rest2>
+	struct params_checker
+	{
+		constexpr bool is_matched = idx ? 1 : 0;
+	};*/
 }
-
-#undef LB_ASSERT_EQ
-
-#ifdef LB_ASSERT
-#undef LB_ASSERT
-#endif
-
-#ifdef LB_LOG_D
-#undef LB_LOG_D
-#endif
-
-#ifdef LB_LOG_I
-#undef LB_LOG_I
-#endif
-
-#ifdef LB_LOG_W
-#undef LB_LOG_W
-#endif
-
-#ifdef LB_LOG_E
-#undef LB_LOG_E
-#endif
-
-#ifdef LB_BUF_SIZE
-#undef LB_BUF_SIZE
-#endif

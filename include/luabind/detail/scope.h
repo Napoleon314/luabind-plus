@@ -88,6 +88,34 @@ namespace luabind
 			friend struct scope;
 			enrollment* next = nullptr;
 		};
+
+		template <class... _Types>
+		struct manual_func : enrollment
+		{
+			typedef std::tuple<_Types...> holder;
+
+			manual_func(const char* n, lua_CFunction f, _Types... pak) noexcept
+				: name(n), func(f), upvalues(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				lua_pushstring(L, name);
+				if (type_traits<holder>::can_push)
+				{
+					if (type_traits<holder>::push(L, upvalues)
+						== type_traits<holder>::stack_count)
+					{
+						lua_pushcclosure(L, func, type_traits<holder>::stack_count);
+						lua_rawset(L, -3);
+					}
+				}
+			}
+
+			const char* name = nullptr;
+			lua_CFunction func = nullptr;
+			holder upvalues;
+		};
 	}
 
 	struct scope
@@ -176,7 +204,7 @@ namespace luabind
 		detail::enrollment* chain = nullptr;
 	};
 
-	class name_space : public scope
+	class namespace_ : public scope
 	{
 	public:
 		struct enrollment : detail::enrollment
@@ -238,13 +266,13 @@ namespace luabind
 		};
 
 
-		explicit name_space(const char* name) noexcept
+		explicit namespace_(const char* name) noexcept
 			: scope(new enrollment(name))
 		{
 
 		}
 
-		name_space& operator [] (scope s) noexcept
+		namespace_& operator [] (scope s) noexcept
 		{
 			((enrollment*)chain)->inner_scope.operator,(s);
 			return *this;
@@ -355,6 +383,25 @@ namespace luabind
 	inline module_class module(lua_State* L, char const* name = nullptr)
 	{
 		return module_class(L, name);
+	}
+
+	template <class... _Types>
+	scope def_manual(const char* name, lua_CFunction func, _Types... pak)
+	{
+		return scope(new detail::manual_func<_Types...>(name, func, pak...));
+	}
+
+	template <class _Func, class... _Types>
+	scope def(const char* name, std::function<_Func> func, _Types... pak)
+	{
+		return scope();
+	}
+
+	template <class _Func, class... _Types>
+	scope def(const char* name, _Func* func, _Types... pak)
+	{
+		static_assert(std::is_function<_Func>::value, "");
+		return def(name, std::function<std::remove_pointer<_Func>::type>(func), pak...);
 	}
 }
 

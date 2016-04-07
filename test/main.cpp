@@ -126,6 +126,13 @@ int lua_print(lua_State* L) noexcept
 	return 0;
 }
 
+int add(int a, int b) noexcept
+{
+	return a + b;
+}
+
+
+
 int main()
 {
 	using namespace std;
@@ -137,14 +144,13 @@ int main()
 		luaL_openlibs(L);
 
 		module(L)[
-			name_space("luabind")[scope()]
+			namespace_("luabind")[scope()]
 		];
 
 		module(L, "luabind")[
-			name_space("luabind")[scope()]
+			def_manual("print", &lua_print, 1, 2),
+			def("add", &add, 1, 2)
 		];
-
-		module(L)[scope()];
 
 		lua_pushcfunction(L, &lua_print);
 		lua_setglobal(L, "print");
@@ -193,6 +199,8 @@ int main()
 				lua_pop(L, 1);
 			}
 		}*/	
+
+		bool bbb = params_checker<int, char, float>::targets<char, float>::is_matched;
 
 
 		lua_close(L);

@@ -31,6 +31,7 @@
 #pragma once
 
 #include <vtd/string.h>
+#include <functional>
 
 namespace luabind
 {
@@ -106,4 +107,43 @@ namespace luabind
 			return type_traits<_Ret>::make_default();
 		}
 	}
+
+	struct func_holder
+	{
+		virtual ~func_holder() noexcept = default;
+
+		virtual int call(lua_State* L) noexcept = 0;
+
+		static int entry(lua_State* pkState) noexcept
+		{
+			return 0;
+		}
+
+		func_holder* next = nullptr;
+	};
+
+	template <class _Func, class... _Types>
+	struct func_holder_impl
+	{
+		func_holder_impl(std::function<_Func>&& f,
+			std::tuple<_Types...>&& v) noexcept
+			: func(f), vals(v) {}
+
+		virtual int call(lua_State* L) noexcept
+		{
+			return 0;
+		}
+
+		std::function<_Func> func;
+		std::tuple<_Types...> vals;
+	};
+
+	//template <>
+	//struct function_enrollment : detail::enrollment
+	//{
+
+	//};
+
+	
+
 }
