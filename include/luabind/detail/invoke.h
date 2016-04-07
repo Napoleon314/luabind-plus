@@ -32,6 +32,29 @@
 
 namespace luabind
 {
+	template <int idx, class... _Types>
+	struct params_trimmer;
+	
+	template <int idx>
+	struct params_trimmer<idx>
+	{
+		typedef std::tuple<> type;
+	};
+
+	template <int idx, class _This, class... _Rest>
+	struct params_trimmer<idx, _This, _Rest...>
+	{
+		typedef typename std::conditional < (idx > 0),
+			typename params_trimmer<idx - 1, _Rest...>::type,
+			typename std::tuple < _This, _Rest... >> ::type type;
+	};
+
+	template <class _Ret, class... _Types>
+	inline constexpr int params_count(_Ret(*)(_Types...))
+	{
+		return sizeof...(_Types);
+	}
+
 	/*template <class... _Types>
 	struct params_checker;
 

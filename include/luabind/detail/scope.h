@@ -112,9 +112,38 @@ namespace luabind
 				}
 			}
 
-			const char* name = nullptr;
-			lua_CFunction func = nullptr;
+			const char* name;
+			lua_CFunction func;
 			holder upvalues;
+		};
+
+		template <class _Func, class... _Types>
+		struct cpp_func : enrollment
+		{
+			//static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
+			//typedef std::tuple<_Types...> holder;
+
+			cpp_func(const char* n, std::function<_Func>&& f, _Types... pak) noexcept
+				: name(n), func(f) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				/*LUABIND_HOLD_STACK(L);
+				lua_pushstring(L, name);
+				if (type_traits<holder>::can_push)
+				{
+					if (type_traits<holder>::push(L, upvalues)
+						== type_traits<holder>::stack_count)
+					{
+						lua_pushcclosure(L, func, type_traits<holder>::stack_count);
+						lua_rawset(L, -3);
+					}
+				}*/
+			}
+
+			const char* name;
+			std::function<_Func> func;
+			//holder upvalues;
 		};
 	}
 
@@ -181,12 +210,12 @@ namespace luabind
 
 		scope& operator , (scope s) noexcept
 		{
-			detail::enrollment*& cur = chain;
-			while (cur)
+			detail::enrollment** cur = &chain;
+			while (*cur)
 			{
-				cur = cur->next;
+				cur = &((*cur)->next);
 			}
-			cur = s.chain;
+			*cur = s.chain;
 			s.chain = nullptr;
 			return *this;
 		}
@@ -394,13 +423,13 @@ namespace luabind
 	template <class _Func, class... _Types>
 	scope def(const char* name, std::function<_Func> func, _Types... pak)
 	{
-		return scope();
+		return scope(new detail::cpp_func<_Func, _Types...>(name, std::move(func), pak...));
 	}
 
 	template <class _Func, class... _Types>
 	scope def(const char* name, _Func* func, _Types... pak)
 	{
-		static_assert(std::is_function<_Func>::value, "");
+		static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
 		return def(name, std::function<_Func>(func), pak...);
 	}
 }

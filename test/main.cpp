@@ -187,6 +187,8 @@ int main()
 			lua_pop(L, 1);
 		}
 
+		static_assert(params_count(&add) == 2, "");
+
 		/*char input_buf[65536];
 		while (true)
 		{
