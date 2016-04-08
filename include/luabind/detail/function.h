@@ -114,26 +114,10 @@ namespace luabind
 		typedef std::function<_Ret(_Types...)> func_type;
 		typedef typename params_trimmer<idx, _Types...>::type val_type;
 		typedef _Ret ret_type;
-		
-		typedef func_param_getter<idx, _Types...> param_getter;
+		typedef std::tuple<_Types...> tuple;
 
 		static constexpr int params_count = sizeof...(_Types);
 		static constexpr int default_start = idx;
-
-		template <int param_idx>
-		static typename params_finder<param_idx, _Types...>::type
-			get(val_type& v, lua_State* L, int top, int base) noexcept
-		{
-			if (top > base)
-			{
-				LB_ASSERT((base + type_traits<typename params_finder<param_idx, _Types...>::type>::stack_count) <= top);
-				return type_traits<typename params_finder<param_idx, _Types...>::type>::get(L, base + 1);
-			}
-			else
-			{
-				return type_traits<typename params_finder<param_idx, _Types...>::type>::make_default();
-			}
-		}
 
 		static bool test(lua_State* L, int top) noexcept
 		{
@@ -204,7 +188,8 @@ namespace luabind
 			if (_Shell::test(L, top))
 			{
 				return type_traits<typename _Shell::ret_type>::push(L,
-					func_invoker<_Shell>::invoke(func, vals, L, top, 0));
+					func_invoker<0, _Shell::default_start, _Shell>::invoke(
+						func, vals, L, top));
 			}
 			else if (next)
 			{
