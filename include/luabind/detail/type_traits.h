@@ -610,6 +610,22 @@ namespace luabind
 	};
 
 	template <class... _Types>
+	struct params_traits;
+
+	template<>
+	struct params_traits<>
+	{
+		static constexpr int stack_count = 0;
+	};
+
+	template <class _This, class... _Rest>
+	struct params_traits<_This, _Rest...>
+	{
+		static constexpr int stack_count = type_traits<_This>::stack_count + params_traits<_Rest...>::stack_count;
+	};
+
+
+	template <class... _Types>
 	struct params_pusher;
 
 	template<>

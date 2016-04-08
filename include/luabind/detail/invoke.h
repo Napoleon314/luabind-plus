@@ -50,11 +50,52 @@ namespace luabind
 	};
 
 	template <class _Ret, class... _Types>
-	inline constexpr int params_count(_Ret(*)(_Types...)) noexcept
+	inline constexpr int count_func_params(_Ret(*)(_Types...)) noexcept
 	{
 		return sizeof...(_Types);
 	}
 
+	template <int stack_base, int param_idx, int idx, class... _Types>
+	struct func_invoker;
+
+	template <int stack_base, int param_idx, int idx>
+	struct func_invoker<stack_base, param_idx, idx>
+	{
+		static bool test(lua_State* L, int top) noexcept
+		{
+			return stack_base == top;
+		}
+	};
+
+	template <int stack_base, int param_idx, int idx, class _This, class... _Rest>
+	struct func_invoker<stack_base, param_idx, idx, _This, _Rest...>
+	{
+		static bool test(lua_State* L, int top) noexcept
+		{
+			int t = sizeof...(_Rest);
+			if (top > stack_base)
+			{
+				constexpr int next_stack_cap = stack_base + type_traits<_This>::stack_count;
+				if (next_stack_cap <= top)
+				{
+					return type_traits<_This>::test(L, stack_base + 1)
+						&& func_invoker<next_stack_cap, param_idx + 1, idx, _Rest...>::test(L, top);
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else if(top == stack_base && type_traits<_This>::stack_count == 0)
+			{
+				return func_invoker<stack_base, param_idx + 1, idx, _Rest...>::test(L, top);
+			}
+			else
+			{
+				return param_idx >= idx;
+			}
+		}
+	};
 	
 
 	/*template <class... _Types>

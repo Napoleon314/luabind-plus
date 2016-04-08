@@ -138,7 +138,7 @@ namespace luabind
 				{
 					lua_pop(L, 1);
 					void* data = lua_newuserdata(L, sizeof(func_holder*));
-					*(func_holder**)data = create_func_holder(func, values);
+					*(func_holder**)data = new func_holder_impl<_Shell>(func, values);
 					lua_newtable(L);
 					lua_pushstring(L, "__gc");
 					lua_pushcfunction(L, &func_holder::__gc);
@@ -155,7 +155,18 @@ namespace luabind
 				else
 				{
 					func_holder* h = *(func_holder**)lua_touserdata(L, -1);
-					h->next = create_func_holder(func, values);
+					while (true)
+					{
+						if (h->next)
+						{
+							h = h->next;
+						}
+						else
+						{
+							h->next = new func_holder_impl<_Shell>(func, values);
+							break;
+						}						
+					}					
 				}
 			}
 
@@ -441,7 +452,7 @@ namespace luabind
 	template <class _Func, class... _Types>
 	scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
 	{
-		auto shell = create_func_shell<params_count((_Func*)nullptr)-(sizeof...(_Types))>(
+		auto shell = create_func_shell<count_func_params((_Func*)nullptr)-(sizeof...(_Types))>(
 			std::move(func));
 		return scope(new detail::cpp_func<decltype(shell), _Types...>(name, shell, pak...));
 	}

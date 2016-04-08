@@ -149,6 +149,7 @@ int main()
 
 		module(L, "luabind")[
 			def_manual("print", &lua_print, 1, 2),
+			def("add", &add),
 			def("add", &add, 1),
 			def("add", &add, 2, 3)
 		];
@@ -188,7 +189,7 @@ int main()
 			lua_pop(L, 1);
 		}
 
-		static_assert(params_count(&add) == 2, "");
+		static_assert(count_func_params(&add) == 2, "");
 
 		/*char input_buf[65536];
 		while (true)

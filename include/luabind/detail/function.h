@@ -87,7 +87,7 @@ namespace luabind
 		}
 		LB_ASSERT(lua_type(L, -1) == LUA_TFUNCTION);
 		int num_params = params_pusher<_Types...>::push(L, pak...);
-		if (num_params < 0)
+		if (num_params != params_traits<_Types...>::stack_count)
 		{
 			LB_LOG_W("call function %s without correct params", func);
 			return type_traits<_Ret>::make_default();
@@ -113,6 +113,11 @@ namespace luabind
 	{
 		typedef std::function<_Ret(_Types...)> func_type;
 		typedef typename params_trimmer<idx, _Types...>::type val_type;
+
+		static bool test(lua_State* L) noexcept
+		{
+			return func_invoker<0, 0, idx, _Types...>::test(L, lua_gettop(L));
+		}
 
 		func_shell(func_type&& f) noexcept : func(f) {}
 
@@ -149,37 +154,48 @@ namespace luabind
 		static int entry(lua_State* L) noexcept
 		{
 			func_holder* h = *(func_holder**)lua_touserdata(L, lua_upvalueindex(1));
-			return h->call(L);
+			int ret = h->call(L);
+			if (ret < 0)
+			{
+				return luaL_error(L, "call c++ function with wrong params.");
+			}
+			else
+			{
+				return ret;
+			}			
 		}
 
 		func_holder* next = nullptr;
 	};
 
-	template <class _Func, class... _Types>
+	template <class _Shell, class... _Types>
 	struct func_holder_impl : func_holder
 	{
-		func_holder_impl(const std::function<_Func>& f,
-			const std::tuple<_Types...>& v) noexcept
+		typedef typename _Shell::func_type func_type;
+		typedef typename _Shell::val_type val_type;
+
+		func_holder_impl(const func_type& f, const val_type& v) noexcept
 			: func(f), vals(v) {}
 
 		virtual int call(lua_State* L) noexcept
 		{
-			//_Types... pak;
-
-
-			return 0;
+			if (_Shell::test(L))
+			{
+				return 0;
+			}
+			else if (next)
+			{
+				return next->call(L);
+			}
+			else
+			{
+				return -1;
+			}
 		}
 
-		std::function<_Func> func;
-		std::tuple<_Types...> vals;
+		func_type func;
+		val_type vals;
 	};
-
-	template <class _Func, class... _Types>
-	func_holder* create_func_holder(const std::function<_Func>& func,
-		const std::tuple<_Types...>& vals) noexcept
-	{
-		return new func_holder_impl<_Func, _Types...>(func, vals);
-	}
 
 	//template <>
 	//struct function_enrollment : detail::enrollment
