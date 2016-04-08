@@ -48,6 +48,23 @@ namespace luabind
 			typename params_trimmer<idx - 1, _Rest...>::type,
 			typename std::tuple < _This, _Rest... >> ::type type;
 	};
+	
+	template <int idx, class... _Rest>
+	struct params_finder;
+
+	template <int idx>
+	struct params_finder<idx>
+	{
+		typedef void type;
+	};
+
+	template <int idx, class _This, class... _Rest>
+	struct params_finder<idx, _This, _Rest...>
+	{
+		typedef typename std::conditional < (idx > 0),
+			typename params_finder<idx - 1, _Rest...>::type,
+			typename _This>::type type;
+	};
 
 	template <class _Ret, class... _Types>
 	inline constexpr int count_func_params(_Ret(*)(_Types...)) noexcept
@@ -56,10 +73,10 @@ namespace luabind
 	}
 
 	template <int stack_base, int param_idx, int idx, class... _Types>
-	struct func_invoker;
+	struct func_tester;
 
 	template <int stack_base, int param_idx, int idx>
-	struct func_invoker<stack_base, param_idx, idx>
+	struct func_tester<stack_base, param_idx, idx>
 	{
 		static bool test(lua_State* L, int top) noexcept
 		{
@@ -68,7 +85,7 @@ namespace luabind
 	};
 
 	template <int stack_base, int param_idx, int idx, class _This, class... _Rest>
-	struct func_invoker<stack_base, param_idx, idx, _This, _Rest...>
+	struct func_tester<stack_base, param_idx, idx, _This, _Rest...>
 	{
 		static bool test(lua_State* L, int top) noexcept
 		{
@@ -78,7 +95,7 @@ namespace luabind
 				if (next_stack_cap <= top)
 				{
 					return type_traits<_This>::test(L, stack_base + 1)
-						&& func_invoker<next_stack_cap, param_idx + 1, idx, _Rest...>::test(L, top);
+						&& func_tester<next_stack_cap, param_idx + 1, idx, _Rest...>::test(L, top);
 				}
 				else
 				{
@@ -87,7 +104,7 @@ namespace luabind
 			}
 			else if(top == stack_base && type_traits<_This>::stack_count == 0)
 			{
-				return func_invoker<stack_base, param_idx + 1, idx, _Rest...>::test(L, top);
+				return func_tester<stack_base, param_idx + 1, idx, _Rest...>::test(L, top);
 			}
 			else
 			{
@@ -95,48 +112,39 @@ namespace luabind
 			}
 		}
 	};
-	
 
-	/*template <class... _Types>
-	struct params_checker;
-
-	template <>
-	struct params_checker<>
+	template <class _Shell, class... _Types>
+	struct func_params_maker
 	{
-		template <class... _Targets>
-		struct targets
+		static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
+			typename _Shell::val_type& v, lua_State* L,
+			int top, int base, _Types... pak) noexcept
 		{
-			static constexpr bool is_matched = !(sizeof...(_Targets));
-		};
+			auto p = _Shell::get<sizeof...(_Types)>(v, L, top, base);
+			base += type_traits<decltype(p)>::stack_count;
+			return func_invoker<_Shell, _Types..., decltype(p)>::invoke(
+				f, v, L, top, base, pak..., p);
+		}
 	};
 
-	template <class _This, class... _Rest>
-	struct params_checker<_This, _Rest...>
+	template <class _Shell, class... _Types>
+	struct func_caller
 	{
-		template <class... _Types>
-		struct targets;
-
-		template <>
-		struct targets<int>
+		static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
+			typename _Shell::val_type& v, lua_State* L,
+			int top, int base, _Types... pak) noexcept
 		{
-			static constexpr bool is_matched = false;
-		};
+			return f(pak...);
+		}
+	};
 
-		template <class _This1, class... _Rest1>
-		struct targets<_This1, _Rest1...>
-		{
-			static constexpr bool is_matched = (sizeof...(_Rest)) > (sizeof...(_Rest1))
-				? params_checker<_Rest...>::targets<_This1, _Rest1...>::is_matched
-				: ((sizeof...(_Rest)) == (sizeof...(_Rest1))
-					? (std::is_same<_This, _This1>::value
-						&& params_checker<_Rest...>::targets<_Rest1...>::is_matched)
-					: false);	
-		};
-	};*/
-
-	/*template <class _This1, class... _Rest1, int idx, class _This2, class... _Rest2>
-	struct params_checker
+	template <class _Shell, class... _Types>
+	struct func_invoker : std::conditional<
+		sizeof...(_Types) == _Shell::params_count,
+		func_caller<_Shell, _Types...>,
+		func_params_maker<_Shell, _Types...>	
+	>::type
 	{
-		constexpr bool is_matched = idx ? 1 : 0;
-	};*/
+
+	};
 }

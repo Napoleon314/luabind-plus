@@ -113,10 +113,29 @@ namespace luabind
 	{
 		typedef std::function<_Ret(_Types...)> func_type;
 		typedef typename params_trimmer<idx, _Types...>::type val_type;
+		typedef _Ret ret_type;
 
-		static bool test(lua_State* L) noexcept
+		static constexpr int params_count = sizeof...(_Types);
+		static constexpr int default_start = idx;
+
+		template <int param_idx>
+		static typename params_finder<param_idx, _Types...>::type
+			get(val_type& v, lua_State* L, int top, int base) noexcept
 		{
-			return func_invoker<0, 0, idx, _Types...>::test(L, lua_gettop(L));
+			if (top > base)
+			{
+				LB_ASSERT((base + type_traits<typename params_finder<param_idx, _Types...>::type>::stack_count) <= top);
+				return type_traits<typename params_finder<param_idx, _Types...>::type>::get(L, base + 1);
+			}
+			else
+			{
+				return type_traits<typename params_finder<param_idx, _Types...>::type>::make_default();
+			}
+		}
+
+		static bool test(lua_State* L, int top) noexcept
+		{
+			return func_tester<0, 0, idx, _Types...>::test(L, top);
 		}
 
 		func_shell(func_type&& f) noexcept : func(f) {}
@@ -179,9 +198,11 @@ namespace luabind
 
 		virtual int call(lua_State* L) noexcept
 		{
-			if (_Shell::test(L))
+			int top = lua_gettop(L);
+			if (_Shell::test(L, top))
 			{
-				return 0;
+				return type_traits<_Shell::ret_type>::push(L,
+					func_invoker<_Shell>::invoke(func, vals, L, top, 0));
 			}
 			else if (next)
 			{
@@ -196,13 +217,4 @@ namespace luabind
 		func_type func;
 		val_type vals;
 	};
-
-	//template <>
-	//struct function_enrollment : detail::enrollment
-	//{
-
-	//};
-
-	
-
 }
