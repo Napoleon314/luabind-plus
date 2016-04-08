@@ -114,6 +114,8 @@ namespace luabind
 		typedef std::function<_Ret(_Types...)> func_type;
 		typedef typename params_trimmer<idx, _Types...>::type val_type;
 		typedef _Ret ret_type;
+		
+		typedef func_param_getter<idx, _Types...> param_getter;
 
 		static constexpr int params_count = sizeof...(_Types);
 		static constexpr int default_start = idx;

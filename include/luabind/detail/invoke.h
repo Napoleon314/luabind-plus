@@ -113,6 +113,58 @@ namespace luabind
 		}
 	};
 
+	template <int stack_base, int param_idx, int idx, class... _Types>
+	struct inner_func_getter_normal;
+
+	template <int stack_base, int param_idx, int idx, class... _Types>
+	struct inner_func_getter_default;
+
+	template <int idx, class... _Types>
+	struct func_param_getter
+	{
+		template <int stack_base, int param_idx>
+		struct inner : inner_func_getter_normal<stack_base, param_idx, idx, _Types...>
+		{
+
+		};
+
+
+
+
+	};
+
+	template <int stack_base, int param_idx, int idx, class... _Types>
+	struct inner_func_getter_normal
+	{
+		typedef typename params_trimmer<idx, _Types...>::type val_type;
+
+		static typename params_finder<param_idx, _Types...>::type
+			get(val_type& v, lua_State* L, int top, int base) noexcept
+		{
+			if (top > base)
+			{
+				LB_ASSERT((base + type_traits<typename params_finder<param_idx, _Types...>::type>::stack_count) <= top);
+				return type_traits<typename params_finder<param_idx, _Types...>::type>::get(L, base + 1);
+			}
+			else
+			{
+				return type_traits<typename params_finder<param_idx, _Types...>::type>::make_default();
+			}
+		}
+	};
+
+	template <int stack_base, int param_idx, int idx, class... _Types>
+	struct inner_func_getter_default
+	{
+		
+		
+	};
+
+
+
+
+
+
     template <typename _Shell, class... _Types>
     struct func_params_maker;
 
@@ -120,11 +172,10 @@ namespace luabind
     struct func_caller;
 
 	template <class _Shell, class... _Types>
-	struct func_invoker : std::conditional<
+	struct func_invoker : std::conditional <
 		sizeof...(_Types) == _Shell::params_count,
 		func_caller<_Shell, _Types...>,
-		func_params_maker<_Shell, _Types...>	
-	>::type
+		func_params_maker < _Shell, _Types... >> ::type
 	{
 
 	};
@@ -136,7 +187,7 @@ namespace luabind
                                                 typename _Shell::val_type& v, lua_State* L,
                                                 int top, int base, _Types... pak) noexcept
         {
-            auto p = _Shell::get<sizeof...(_Types)>(v, L, top, base);
+			auto p = _Shell::param_getter::inner<0, sizeof...(_Types)>::get(v, L, top, base);
             base += type_traits<decltype(p)>::stack_count;
             return func_invoker<_Shell, _Types..., decltype(p)>::invoke(
                                                                         f, v, L, top, base, pak..., p);
