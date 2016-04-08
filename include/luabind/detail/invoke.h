@@ -63,7 +63,7 @@ namespace luabind
 	{
 		typedef typename std::conditional < (idx > 0),
 			typename params_finder<idx - 1, _Rest...>::type,
-			typename _This>::type type;
+            _This>::type type;
 	};
 
 	template <class _Ret, class... _Types>
@@ -113,30 +113,11 @@ namespace luabind
 		}
 	};
 
-	template <class _Shell, class... _Types>
-	struct func_params_maker
-	{
-		static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
-			typename _Shell::val_type& v, lua_State* L,
-			int top, int base, _Types... pak) noexcept
-		{
-			auto p = _Shell::get<sizeof...(_Types)>(v, L, top, base);
-			base += type_traits<decltype(p)>::stack_count;
-			return func_invoker<_Shell, _Types..., decltype(p)>::invoke(
-				f, v, L, top, base, pak..., p);
-		}
-	};
+    template <typename _Shell, class... _Types>
+    struct func_params_maker;
 
-	template <class _Shell, class... _Types>
-	struct func_caller
-	{
-		static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
-			typename _Shell::val_type& v, lua_State* L,
-			int top, int base, _Types... pak) noexcept
-		{
-			return f(pak...);
-		}
-	};
+    template <class _Shell, class... _Types>
+    struct func_caller;
 
 	template <class _Shell, class... _Types>
 	struct func_invoker : std::conditional<
@@ -147,4 +128,30 @@ namespace luabind
 	{
 
 	};
+    
+    template <typename _Shell, class... _Types>
+    struct func_params_maker
+    {
+        static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
+                                                typename _Shell::val_type& v, lua_State* L,
+                                                int top, int base, _Types... pak) noexcept
+        {
+            auto p = _Shell::get<sizeof...(_Types)>(v, L, top, base);
+            base += type_traits<decltype(p)>::stack_count;
+            return func_invoker<_Shell, _Types..., decltype(p)>::invoke(
+                                                                        f, v, L, top, base, pak..., p);
+        }
+    };
+    
+    template <class _Shell, class... _Types>
+    struct func_caller
+    {
+        static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
+                                                typename _Shell::val_type& v, lua_State* L,
+                                                int top, int base, _Types... pak) noexcept
+        {
+            return f(pak...);
+        }
+    };
+    
 }

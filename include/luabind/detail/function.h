@@ -201,7 +201,7 @@ namespace luabind
 			int top = lua_gettop(L);
 			if (_Shell::test(L, top))
 			{
-				return type_traits<_Shell::ret_type>::push(L,
+				return type_traits<typename _Shell::ret_type>::push(L,
 					func_invoker<_Shell>::invoke(func, vals, L, top, 0));
 			}
 			else if (next)
