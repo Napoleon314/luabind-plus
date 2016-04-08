@@ -72,7 +72,6 @@ namespace luabind
 	{
 		static bool test(lua_State* L, int top) noexcept
 		{
-			int t = sizeof...(_Rest);
 			if (top > stack_base)
 			{
 				constexpr int next_stack_cap = stack_base + type_traits<_This>::stack_count;
