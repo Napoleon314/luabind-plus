@@ -149,8 +149,8 @@ int main()
 
 		module(L, "luabind")[
 			def_manual("print", &lua_print, 1, 2),
-			//def("add", &add),
-			//def("add", &add, 1),
+			def("add", &add),
+			def("add", &add, 1),
 			def("add", &add, 2, 3)
 		];
 
