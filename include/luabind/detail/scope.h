@@ -147,7 +147,8 @@ namespace luabind
 					lua_pushstring(L, name);
 					lua_pushvalue(L, -2);
 					lua_rawset(L, -4);
-					lua_pushcclosure(L, &func_holder::entry, 1);
+					lua_pushstring(L, name);
+					lua_pushcclosure(L, &func_holder::entry, 2);
 					lua_pushstring(L, name);
 					lua_pushvalue(L, -2);
 					lua_rawset(L, -5);

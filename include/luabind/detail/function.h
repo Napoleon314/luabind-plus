@@ -162,7 +162,8 @@ namespace luabind
 			int ret = h->call(L);
 			if (ret < 0)
 			{
-				return luaL_error(L, "call c++ function with wrong params.");
+				return luaL_error(L, "call c++ function[%s] with wrong params.",
+					lua_tostring(L, lua_upvalueindex(2)));
 			}
 			else
 			{

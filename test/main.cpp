@@ -131,7 +131,10 @@ int add(int a, int b) noexcept
 	return a + b;
 }
 
-
+std::tuple<int,int> test(std::tuple<int, float> a, int b) noexcept
+{
+	return std::make_tuple(std::get<0>(a), b);
+}
 
 int main()
 {
@@ -151,7 +154,8 @@ int main()
 			def_manual("print", &lua_print, 1, 2),
 			def("add", &add),
 			def("add", &add, 1),
-			def("add", &add, 2, 3)
+			def("add", &add, 2, 3),
+			def("test", &test, std::make_tuple(1, 2.0f), 3)
 		];
 
 		lua_pushcfunction(L, &lua_print);

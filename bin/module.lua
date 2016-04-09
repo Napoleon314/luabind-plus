@@ -7,3 +7,4 @@ luabind.luabind = 0
 
 luabind.print(1,2)
 print("luabind.add=", luabind.add(5))
+print("luabind.test=", luabind.test(5, 5.5, 8, 9))

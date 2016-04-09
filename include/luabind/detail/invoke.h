@@ -171,5 +171,4 @@ namespace luabind
             return f(pak...);
         }
     };
-    
 }
