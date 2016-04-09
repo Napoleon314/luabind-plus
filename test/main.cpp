@@ -136,6 +136,13 @@ std::tuple<int,int> test(std::tuple<int, float> a, int b) noexcept
 	return std::make_tuple(std::get<0>(a), b);
 }
 
+enum class TestEnum
+{
+	test_enum1,
+	test_enum2,
+	test_enum3
+};
+
 int main()
 {
 	using namespace std;
@@ -151,17 +158,24 @@ int main()
 		];
 
 		module(L, "luabind")[
+			namespace_("luabind")[scope()]
+		];
+
+		module(L, "luabind")[
 			def_manual("print", &lua_print, 1, 2),
 			def("add", &add),
 			def("add", &add, 1),
 			def("add", &add, 2, 3),
-			def("test", &test, std::make_tuple(1, 2.0f), 3)
+			def("test", &test, std::make_tuple(1, 2.0f), 3),
+			def_const("CONST_VAL", 5)
 		];
 
 		lua_pushcfunction(L, &lua_print);
 		lua_setglobal(L, "print");
 		int err(0);
 
+		//TestEnum a = TestEnum::test_enum1;
+		
 		/*err = luaL_dofile(L, "startup.lua");
 		if (err)
 		{

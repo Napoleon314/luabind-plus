@@ -51,7 +51,7 @@
 #endif
 
 #ifndef LB_BUF_SIZE
-#define LB_BUF_SIZE (256)
+#define LB_BUF_SIZE (1024)
 #endif
 
 #ifndef NDEBUG

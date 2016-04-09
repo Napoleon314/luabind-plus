@@ -34,6 +34,15 @@
 
 namespace luabind
 {
+	enum RelatedIndex
+	{
+		INDEX_NOP,
+		INDEX_SCOPE,
+		INDEX_SCOPE_NAME,
+		INDEX_FUNC,
+		INDEX_MAX
+	};
+
 	struct env : vtd::ref_obj
 	{
 		lua_State* L = nullptr;

@@ -34,36 +34,16 @@ namespace luabind
 {
 	struct scope;
 
+	enum SocpeType
+	{
+		SCOPE_NAMESPACE,
+		SCOPE_ENUM,
+		SCOPE_CLASS,
+		SCOPE_MAX
+	};
+
 	namespace detail
 	{
-		static int key_protection(lua_State* L) noexcept
-		{
-			lua_pushvalue(L, lua_upvalueindex(1));
-			lua_pushvalue(L, -3);
-			if (lua_gettable(L, -5) > 1)
-			{
-				lua_getglobal(L, "tostring");
-				lua_pushvalue(L, 2);
-				lua_call(L, 1, 1);
-				size_t l;
-				const char* s = lua_tolstring(L, -1, &l);
-				if (s == nullptr)
-					return luaL_error(L, "'tostring' must return a string to 'print'");
-				char before[] = "new index \"";
-				lua_writestring(before, sizeof(before) - 1);
-				lua_writestring(s, l);
-				char after[] = "\" causing a luabind name conflict.";
-				lua_writestring(after, sizeof(after) - 1);
-				lua_writeline();
-			}
-			else
-			{
-				lua_settop(L, 3);
-				lua_rawset(L, -3);
-			}
-			return 0;
-		}
-
 		struct enrollment
 		{
 			enrollment() noexcept = default;
@@ -83,6 +63,26 @@ namespace luabind
 		private:
             friend struct luabind::scope;
 			enrollment* next = nullptr;
+		};
+
+		template <class _Type>
+		struct const_value : enrollment
+		{
+			static_assert(type_traits<_Type>::stack_count == 1
+				&& type_traits<_Type>::can_push, "type of const value wrong.");
+
+			const_value(const char* n, _Type v) noexcept
+				: name(n), value(v) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				lua_pushstring(L, name);
+				LB_ASSERT_EQ(type_traits<_Type>::push(L, value), 1);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			_Type value;
 		};
 
 		template <class... _Types>
@@ -179,12 +179,6 @@ namespace luabind
 
 	struct scope
 	{
-		enum Type
-		{
-			TYPE_NAMESPACE = 10,
-			TYPE_MAX
-		};
-
 		scope() noexcept = default;
 
 		explicit scope(detail::enrollment* e) noexcept
@@ -266,6 +260,50 @@ namespace luabind
 	class namespace_ : public scope
 	{
 	public:
+		static int __tostring(lua_State* L) noexcept
+		{
+			char buf[LB_BUF_SIZE];
+			const char* name = lua_tostring(L, lua_upvalueindex(1));
+			if (*name)
+			{
+				sprintf(buf, "c++ namespace[%s]", name);
+			}
+			else
+			{
+				sprintf(buf, "c++ namespace[_G]");
+			}
+			lua_pushstring(L, buf);
+			return 1;
+		}
+
+		static int __newindex(lua_State* L) noexcept
+		{
+			lua_pushvalue(L, lua_upvalueindex(1));
+			lua_pushvalue(L, -3);
+			if (lua_gettable(L, -5) > 1)
+			{				
+				lua_getglobal(L, "tostring");
+				lua_pushvalue(L, 2);
+				lua_call(L, 1, 1);
+				const char* s = lua_tostring(L, -1);
+				const char* scope_name = lua_tostring(L, lua_upvalueindex(2));
+				if (*scope_name)
+				{
+					return luaL_error(L, "new index \"%s.%s\" causing a luabind name conflict.", scope_name, s);
+				}
+				else
+				{
+					return luaL_error(L, "new index \"%s\" causing a luabind name conflict.", s);
+				}
+			}
+			else
+			{
+				lua_settop(L, 3);
+				lua_rawset(L, -3);
+			}
+			return 0;
+		}
+
 		struct enrollment : detail::enrollment
 		{
 			enrollment(const char* n) noexcept
@@ -277,6 +315,18 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_CHECK_STACK(L);
+				char full_name[LB_BUF_SIZE];
+				LB_ASSERT_EQ(lua_rawgeti(L, -2, INDEX_SCOPE_NAME), LUA_TSTRING);
+				const char* super_name = lua_tostring(L, -1);
+				if (*super_name)
+				{
+					sprintf(full_name, "%s.%s", super_name, name);
+				}
+				else
+				{
+					sprintf(full_name, "%s", name);
+				}
+				lua_pop(L, 1);
 				lua_pushstring(L, name);
 				if (!lua_rawget(L, -2))
 				{
@@ -298,12 +348,19 @@ namespace luabind
 				if (!lua_rawget(L, -2))
 				{
 					lua_pop(L, 1);					
-					lua_pushinteger(L, scope::TYPE_NAMESPACE);
+					lua_pushinteger(L, SCOPE_NAMESPACE);
 					lua_rawseti(L, -2, INDEX_SCOPE);
+					lua_pushstring(L, full_name);
+					lua_rawseti(L, -2, INDEX_SCOPE_NAME);
+					lua_pushstring(L, "__tostring");
+					lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
+					lua_pushcclosure(L, &namespace_::__tostring, 1);
+					lua_rawset(L, -3);
 					lua_newtable(L);
 					lua_pushstring(L, "__newindex");
 					lua_pushvalue(L, -2);
-					lua_pushcclosure(L, &detail::key_protection, 1);
+					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
+					lua_pushcclosure(L, &namespace_::__newindex, 2);
 					lua_rawset(L, -4);
 					lua_pushstring(L, "__index");
 					lua_pushvalue(L, -2);
@@ -313,7 +370,7 @@ namespace luabind
 #				ifndef NDEBUG
 				lua_rawgeti(L, -2, INDEX_SCOPE);
 				LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
-					&& lua_tointeger(L, -1) == scope::TYPE_NAMESPACE);
+					&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
 				lua_pop(L, 1);
 #				endif
 				inner_scope.enroll(L);
@@ -338,10 +395,10 @@ namespace luabind
 		}
 	};
 
-	class module_class
+	class module_
 	{
 	public:
-		module_class(lua_State* L, const char* n) noexcept
+		module_(lua_State* L, const char* n) noexcept
 			: inner(get_env(L)), name(n)
 		{
 
@@ -362,12 +419,19 @@ namespace luabind
 				if (!lua_rawget(L, -2))
 				{
 					lua_pop(L, 1);
-					lua_pushinteger(L, scope::TYPE_NAMESPACE);
+					lua_pushinteger(L, SCOPE_NAMESPACE);
 					lua_rawseti(L, -2, INDEX_SCOPE);
+					lua_pushstring(L, "");
+					lua_rawseti(L, -2, INDEX_SCOPE_NAME);
+					lua_pushstring(L, "__tostring");
+					lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
+					lua_pushcclosure(L, &namespace_::__tostring, 1);
+					lua_rawset(L, -3);
 					lua_newtable(L);
 					lua_pushstring(L, "__newindex");
 					lua_pushvalue(L, -2);
-					lua_pushcclosure(L, &detail::key_protection, 1);
+					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
+					lua_pushcclosure(L, &namespace_::__newindex, 2);
 					lua_rawset(L, -4);
 					lua_pushstring(L, "__index");
 					lua_pushvalue(L, -2);
@@ -377,7 +441,7 @@ namespace luabind
 #				ifndef NDEBUG
 				lua_rawgeti(L, -2, INDEX_SCOPE);
 				LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
-					&& lua_tointeger(L, -1) == scope::TYPE_NAMESPACE);
+					&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
 				lua_pop(L, 1);
 #				endif
 				if (name)
@@ -403,12 +467,19 @@ namespace luabind
 					if (!lua_rawget(L, -2))
 					{
 						lua_pop(L, 1);
-						lua_pushinteger(L, scope::TYPE_NAMESPACE);
+						lua_pushinteger(L, SCOPE_NAMESPACE);
 						lua_rawseti(L, -2, INDEX_SCOPE);
+						lua_pushstring(L, name);
+						lua_rawseti(L, -2, INDEX_SCOPE_NAME);
+						lua_pushstring(L, "__tostring");
+						lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
+						lua_pushcclosure(L, &namespace_::__tostring, 1);
+						lua_rawset(L, -3);
 						lua_newtable(L);
 						lua_pushstring(L, "__newindex");
 						lua_pushvalue(L, -2);
-						lua_pushcclosure(L, &detail::key_protection, 1);
+						lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
+						lua_pushcclosure(L, &namespace_::__newindex, 2);
 						lua_rawset(L, -4);
 						lua_pushstring(L, "__index");
 						lua_pushvalue(L, -2);
@@ -418,7 +489,7 @@ namespace luabind
 #					ifndef NDEBUG
 					lua_rawgeti(L, -2, INDEX_SCOPE);
 					LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
-						&& lua_tointeger(L, -1) == scope::TYPE_NAMESPACE);
+						&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
 					lua_pop(L, 1);
 #					endif
 					s.enroll(L);
@@ -439,9 +510,9 @@ namespace luabind
 		const char* name;
 	};
 
-	inline module_class module(lua_State* L, char const* name = nullptr) noexcept
+	inline module_ module(lua_State* L, char const* name = nullptr) noexcept
 	{
-		return module_class(L, name);
+		return module_(L, name);
 	}
 
 	template <class... _Types>
@@ -463,5 +534,11 @@ namespace luabind
 	{
 		static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
 		return def(name, std::function<_Func>(func), pak...);
+	}
+
+	template <class _Type>
+	scope def_const(const char* name, _Type val) noexcept
+	{
+		return scope(new detail::const_value<_Type>(name, val));
 	}
 }

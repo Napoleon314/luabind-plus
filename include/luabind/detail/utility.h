@@ -30,14 +30,6 @@
 
 namespace luabind
 {
-	enum RelatedIndex
-	{
-		INDEX_NOP,
-		INDEX_SCOPE,
-		INDEX_FUNC,
-		INDEX_MAX
-	};
-
 	struct holder
 	{
 		holder(lua_State* _L) noexcept
