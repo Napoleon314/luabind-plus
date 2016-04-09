@@ -42,6 +42,15 @@ namespace luabind
 		SCOPE_MAX
 	};
 
+	enum InnerType
+	{
+		INNER_NOP,
+		INNER_READER,
+		INNER_WRITTER,
+		INNER_SUPPER,
+		INNER_MAX
+	};
+
 	namespace detail
 	{
 		struct enrollment
@@ -59,6 +68,50 @@ namespace luabind
 
 		protected:
 			virtual void enroll(lua_State*) const noexcept = 0;
+
+			static int inner_index(lua_State* L) noexcept
+			{
+				lua_pushvalue(L, -1);
+				if (lua_rawget(L, lua_upvalueindex(1)) == LUA_TFUNCTION)
+				{
+					if (lua_pcall(L, 0, 1, 0))
+					{
+						return luaL_error(L, lua_tostring(L, -1));
+					}
+					else
+					{
+						return 1;
+					}
+				}
+				return 0;
+			}			
+
+			static void getreader(lua_State* L) noexcept
+			{
+				if (lua_rawgeti(L, -2, INDEX_READER) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -4, INDEX_READER);
+				}
+				//LB_ASSERT_EQ(lua_rawgeti(L, -3, INDEX_SCOPE), LUA_TNUMBER);
+				//auto scope_type = type_traits<SocpeType>::get(L, -1);
+				//lua_pop(L, 1);
+				if (!lua_getmetatable(L, -2))
+				{					
+					lua_newtable(L);			
+					lua_pushstring(L, "__index");					
+					lua_pushvalue(L, -3);
+					lua_pushcclosure(L, &inner_index, 1);
+					lua_rawset(L, -3);					
+					lua_setmetatable(L, -3);
+				}
+				else
+				{
+					lua_pop(L, 1);
+				}
+			}
 
 		private:
             friend struct luabind::scope;
@@ -86,9 +139,88 @@ namespace luabind
 		};
 
 		template <class... _Types>
+		struct manual_reader : enrollment
+		{
+			typedef std::tuple<_Types...> holder;
+			static_assert(type_traits<holder>::can_push, "holder types wrong.");
+
+			manual_reader(const char* n, lua_CFunction f, _Types... pak) noexcept
+				: name(n), func(f), upvalues(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				getreader(L);	
+				lua_pushstring(L, name);
+				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
+					type_traits<holder>::stack_count);
+				lua_pushcclosure(L, func, type_traits<holder>::stack_count);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			lua_CFunction func;
+			holder upvalues;
+		};
+
+		template <class _Type>
+		int value_reader(lua_State* L) noexcept
+		{
+			static_assert(type_traits<_Type>::can_push
+				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");			
+			return type_traits<_Type>::push(L, *(_Type*)lua_touserdata(L, lua_upvalueindex(1)));
+		}
+
+		template <class _Type>
+		struct func_reader : enrollment
+		{			
+			static_assert(type_traits<_Type>::can_push
+				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");
+
+			typedef std::function<_Type()> func_type;
+
+			static int __gc(lua_State* L) noexcept
+			{
+				func_type& func = *(func_type*)lua_touserdata(L, 1);
+				func.~func_type();
+				return 0;
+			}
+
+			static int reader(lua_State* L) noexcept
+			{
+				func_type& func = *(func_type*)lua_touserdata(L, lua_upvalueindex(1));
+				return type_traits<_Type>::push(L, func());
+			}
+
+			func_reader(const char* n, std::function<_Type()>&& f) noexcept
+				: name(n), func(f) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				getreader(L);				
+				lua_pushstring(L, name);
+				void* data = lua_newuserdata(L, sizeof(func_type));
+				new(data) func_type(func);				
+				lua_newtable(L);
+				lua_pushstring(L, "__gc");
+				lua_pushcfunction(L, &__gc);
+				lua_rawset(L, -3);
+				lua_setmetatable(L, -2);
+				lua_pushcclosure(L, &reader, 1);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			func_type func;
+		};
+
+
+		template <class... _Types>
 		struct manual_func : enrollment
 		{
 			typedef std::tuple<_Types...> holder;
+			static_assert(type_traits<holder>::can_push, "holder types wrong.");
 
 			manual_func(const char* n, lua_CFunction f, _Types... pak) noexcept
 				: name(n), func(f), upvalues(pak...) {}
@@ -97,15 +229,10 @@ namespace luabind
 			{
 				LUABIND_HOLD_STACK(L);
 				lua_pushstring(L, name);
-				if (type_traits<holder>::can_push)
-				{
-					if (type_traits<holder>::push(L, upvalues)
-						== type_traits<holder>::stack_count)
-					{
-						lua_pushcclosure(L, func, type_traits<holder>::stack_count);
-						lua_rawset(L, -3);
-					}
-				}
+				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
+					type_traits<holder>::stack_count);
+				lua_pushcclosure(L, func, type_traits<holder>::stack_count);
+				lua_rawset(L, -3);
 			}
 
 			const char* name;
@@ -312,31 +439,22 @@ namespace luabind
 
 			}
 
-			virtual void enroll(lua_State* L) const noexcept
+			static void gettable(lua_State* L, const char* name) noexcept
 			{
-				LUABIND_CHECK_STACK(L);
-				char full_name[LB_BUF_SIZE];
-				LB_ASSERT_EQ(lua_rawgeti(L, -2, INDEX_SCOPE_NAME), LUA_TSTRING);
-				const char* super_name = lua_tostring(L, -1);
-				if (*super_name)
-				{
-					sprintf(full_name, "%s.%s", super_name, name);
-				}
-				else
-				{
-					sprintf(full_name, "%s", name);
-				}
-				lua_pop(L, 1);
 				lua_pushstring(L, name);
 				if (!lua_rawget(L, -2))
 				{
 					lua_pop(L, 1);
-					lua_newtable(L);					
+					lua_newtable(L);
 					lua_pushstring(L, name);
 					lua_pushvalue(L, -2);
 					lua_rawset(L, -4);
 				}
-				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);				
+				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
+			}
+
+			static void getmetatable(lua_State* L, const char* full_name) noexcept
+			{
 				if (!lua_getmetatable(L, -1))
 				{
 					lua_newtable(L);
@@ -347,7 +465,7 @@ namespace luabind
 				lua_pushstring(L, "__index");
 				if (!lua_rawget(L, -2))
 				{
-					lua_pop(L, 1);					
+					lua_pop(L, 1);
 					lua_pushinteger(L, SCOPE_NAMESPACE);
 					lua_rawseti(L, -2, INDEX_SCOPE);
 					lua_pushstring(L, full_name);
@@ -365,7 +483,7 @@ namespace luabind
 					lua_pushstring(L, "__index");
 					lua_pushvalue(L, -2);
 					lua_rawset(L, -4);
-				}				
+				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 #				ifndef NDEBUG
 				lua_rawgeti(L, -2, INDEX_SCOPE);
@@ -373,6 +491,25 @@ namespace luabind
 					&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
 				lua_pop(L, 1);
 #				endif
+			}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_CHECK_STACK(L);
+				char full_name[LB_BUF_SIZE];
+				LB_ASSERT_EQ(lua_rawgeti(L, -2, INDEX_SCOPE_NAME), LUA_TSTRING);
+				const char* super_name = lua_tostring(L, -1);
+				if (*super_name)
+				{
+					sprintf(full_name, "%s.%s", super_name, name);
+				}
+				else
+				{
+					sprintf(full_name, "%s", name);
+				}
+				lua_pop(L, 1);
+				gettable(L, name);
+				getmetatable(L, full_name);				
 				inner_scope.enroll(L);
 				lua_pop(L, 3);
 			}
@@ -407,91 +544,16 @@ namespace luabind
 		void operator [] (scope s) noexcept
 		{
 			if (inner && inner->L)
-			{
-				
+			{				
 				lua_State* L = inner->L;
 				LB_ASSERT(!lua_gettop(L));
-				LUABIND_CHECK_STACK(L);
-				
+				LUABIND_CHECK_STACK(L);				
 				lua_pushglobaltable(L);
-				LB_ASSERT_EQ(lua_getmetatable(L, -1), 1);
-				lua_pushstring(L, "__index");
-				if (!lua_rawget(L, -2))
-				{
-					lua_pop(L, 1);
-					lua_pushinteger(L, SCOPE_NAMESPACE);
-					lua_rawseti(L, -2, INDEX_SCOPE);
-					lua_pushstring(L, "");
-					lua_rawseti(L, -2, INDEX_SCOPE_NAME);
-					lua_pushstring(L, "__tostring");
-					lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
-					lua_pushcclosure(L, &namespace_::__tostring, 1);
-					lua_rawset(L, -3);
-					lua_newtable(L);
-					lua_pushstring(L, "__newindex");
-					lua_pushvalue(L, -2);
-					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
-					lua_pushcclosure(L, &namespace_::__newindex, 2);
-					lua_rawset(L, -4);
-					lua_pushstring(L, "__index");
-					lua_pushvalue(L, -2);
-					lua_rawset(L, -4);
-				}
-				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-#				ifndef NDEBUG
-				lua_rawgeti(L, -2, INDEX_SCOPE);
-				LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
-					&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
-				lua_pop(L, 1);
-#				endif
+				namespace_::enrollment::getmetatable(L, "");
 				if (name)
 				{
-					lua_pushstring(L, name);
-					if (!lua_rawget(L, -2))
-					{
-						lua_pop(L, 1);
-						lua_newtable(L);
-						lua_pushstring(L, name);
-						lua_pushvalue(L, -2);
-						lua_rawset(L, -4);
-					}
-					LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-					if (!lua_getmetatable(L, -1))
-					{
-						lua_newtable(L);
-						lua_pushvalue(L, -1);
-						lua_setmetatable(L, -3);
-					}
-					LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-					lua_pushstring(L, "__index");
-					if (!lua_rawget(L, -2))
-					{
-						lua_pop(L, 1);
-						lua_pushinteger(L, SCOPE_NAMESPACE);
-						lua_rawseti(L, -2, INDEX_SCOPE);
-						lua_pushstring(L, name);
-						lua_rawseti(L, -2, INDEX_SCOPE_NAME);
-						lua_pushstring(L, "__tostring");
-						lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
-						lua_pushcclosure(L, &namespace_::__tostring, 1);
-						lua_rawset(L, -3);
-						lua_newtable(L);
-						lua_pushstring(L, "__newindex");
-						lua_pushvalue(L, -2);
-						lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
-						lua_pushcclosure(L, &namespace_::__newindex, 2);
-						lua_rawset(L, -4);
-						lua_pushstring(L, "__index");
-						lua_pushvalue(L, -2);
-						lua_rawset(L, -4);
-					}
-					LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-#					ifndef NDEBUG
-					lua_rawgeti(L, -2, INDEX_SCOPE);
-					LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
-						&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
-					lua_pop(L, 1);
-#					endif
+					namespace_::enrollment::gettable(L, name);
+					namespace_::enrollment::getmetatable(L, name);
 					s.enroll(L);
 					lua_pop(L, 3);
 				}
@@ -500,7 +562,6 @@ namespace luabind
 					s.enroll(L);
 				}
 				lua_pop(L, 3);
-
 			}
 		}
 
@@ -519,6 +580,12 @@ namespace luabind
 	scope def_manual(const char* name, lua_CFunction func, _Types... pak) noexcept
 	{
 		return scope(new detail::manual_func<_Types...>(name, func, pak...));
+	}
+
+	template <class... _Types>
+	scope def_manual_reader(const char* name, lua_CFunction func, _Types... pak) noexcept
+	{
+		return scope(new detail::manual_reader<_Types...>(name, func, pak...));
 	}
 
 	template <class _Func, class... _Types>
@@ -540,5 +607,25 @@ namespace luabind
 	scope def_const(const char* name, _Type val) noexcept
 	{
 		return scope(new detail::const_value<_Type>(name, val));
+	}
+
+	template <class _Type>
+	scope def_readonly(const char* name, const _Type& val) noexcept
+	{
+		return scope(new detail::manual_reader<void*>(name,
+			detail::value_reader<_Type>, (void*)&val));
+	}
+
+	template <class _Type>
+	scope def_reader(const char* name, std::function<_Type()> func) noexcept
+	{
+		return scope(new detail::func_reader<_Type>(name, std::move(func)));
+	}
+
+	template <class _Type>
+	scope def_reader(const char* name, _Type (*func)()) noexcept
+	{
+		return scope(new detail::func_reader<_Type>(name,
+			std::move(std::function<_Type()>(func))));
 	}
 }

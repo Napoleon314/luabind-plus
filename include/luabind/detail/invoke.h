@@ -50,7 +50,7 @@ namespace luabind
 	};
 
 	template <class _Ret, class... _Types>
-	inline constexpr int count_func_params(_Ret(*)(_Types...)) noexcept
+	constexpr int count_func_params(_Ret(*)(_Types...)) noexcept
 	{
 		return sizeof...(_Types);
 	}

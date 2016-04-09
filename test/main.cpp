@@ -143,6 +143,23 @@ enum class TestEnum
 	test_enum3
 };
 
+int test_reader = 15;
+
+int test_reader2 = 30;
+
+int test_reader3 = 60;
+
+int get_reader2() noexcept
+{
+	return test_reader2;
+}
+
+int reader(lua_State* L) noexcept
+{
+	lua_pushinteger(L, test_reader);
+	return 1;
+}
+
 int main()
 {
 	using namespace std;
@@ -167,14 +184,18 @@ int main()
 			def("add", &add, 1),
 			def("add", &add, 2, 3),
 			def("test", &test, std::make_tuple(1, 2.0f), 3),
-			def_const("CONST_VAL", 5)
+			def_const("CONST_VAL", 5),
+			def_reader<decltype(test_reader)>("test_reader", [=]() noexcept
+			{
+				return test_reader;
+			}),
+			def_reader("test_reader2", &get_reader2),
+			def_readonly("test_reader3", test_reader3)
 		];
 
 		lua_pushcfunction(L, &lua_print);
 		lua_setglobal(L, "print");
 		int err(0);
-
-		//TestEnum a = TestEnum::test_enum1;
 		
 		/*err = luaL_dofile(L, "startup.lua");
 		if (err)
@@ -198,7 +219,6 @@ int main()
 			lua_pushvalue(L, -3);
 			lua_pcall(L, 2, 1, 0);
 		});*/
-
 		
 		err = luaL_dofile(L, "module.lua");
 		if (err)

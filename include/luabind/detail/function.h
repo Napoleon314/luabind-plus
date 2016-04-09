@@ -130,7 +130,7 @@ namespace luabind
 	};
 
 	template <int idx, class _Ret, class... _Types>
-	inline func_shell<idx, _Ret, _Types...> create_func_shell(
+	func_shell<idx, _Ret, _Types...> create_func_shell(
 		std::function<_Ret(_Types...)>&& func) noexcept
 	{
 		return func_shell<idx, _Ret, _Types...>(std::move(func));

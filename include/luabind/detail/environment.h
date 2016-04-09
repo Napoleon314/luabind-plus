@@ -40,6 +40,8 @@ namespace luabind
 		INDEX_SCOPE,
 		INDEX_SCOPE_NAME,
 		INDEX_FUNC,
+		INDEX_READER,
+		INDEX_WRITER,
 		INDEX_MAX
 	};
 
@@ -47,7 +49,7 @@ namespace luabind
 	{
 		lua_State* L = nullptr;
 
-		inline static int __gc(lua_State* L) noexcept
+		static int __gc(lua_State* L) noexcept
 		{
 			env* e = *(env**)lua_touserdata(L, 1);
 			e->L = nullptr;
@@ -58,7 +60,7 @@ namespace luabind
 
 	typedef vtd::smart_ptr<env> env_ptr;
 
-	lua_State* get_main(lua_State* L) noexcept
+	inline lua_State* get_main(lua_State* L) noexcept
 	{
 		LUABIND_HOLD_STACK(L);
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
@@ -83,14 +85,14 @@ namespace luabind
 			env* e = new env();										//create env
 			e->inc();
 			e->L = L;
-			void* data = lua_newuserdata(L, sizeof(env*));		//create env user data
+			void* data = lua_newuserdata(L, sizeof(env*));			//create env user data
 			*(env**)data = e;
 			lua_newtable(L);										//create metatable for env user data
 			lua_pushstring(L, "__gc");
 			lua_pushcfunction(L, &env::__gc);
 			lua_rawset(L, -3);
 			lua_setmetatable(L, -2);								//set metatable for env user data
-			lua_rawseti(L, -2, INDEX_MAX);									//set env user data to [1]
+			lua_rawseti(L, -2, INDEX_MAX);							//set env user data to [INDEX_MAX]
 			lua_setmetatable(L, -2);								//set metatable for global
 			return e;
 		}

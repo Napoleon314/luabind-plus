@@ -12,3 +12,7 @@ luabind.print(1,2)
 print("luabind.add=", luabind.add(5))
 print("luabind.test=", luabind.test(5, 5.5, 8))
 
+print(luabind.test_reader)
+print(luabind.test_reader2)
+print(luabind.test_reader3)
+--luabind.test_reader = 9
