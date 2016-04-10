@@ -1,3 +1,6 @@
+luabind.TestClass1.val0 = 78
+print(luabind.TestClass1, luabind.TestClass1.val0)
+--luabind.TestClass1.a = 5
 luabind.test_reader = 50
 luabind.test_reader2 = 80
 luabind.ttt = 6

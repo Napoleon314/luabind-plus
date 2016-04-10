@@ -166,6 +166,15 @@ int writer(lua_State* L) noexcept
 	return 0;
 }
 
+class TestClass1
+{
+public:
+	static int val0;
+
+};
+
+int TestClass1::val0 = 40;
+
 int main()
 {
 	using namespace std;
@@ -197,7 +206,10 @@ int main()
 			def_writer<int>("test_reader2", [&](int val) noexcept
 			{
 				test_reader2 = val;
-			})
+			}),
+			class_<TestClass1>("TestClass1")[
+				def_readwrite("val0", TestClass1::val0)
+			]
 
 
 			//def_manual_writer("test_reader", &writer)

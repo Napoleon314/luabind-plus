@@ -66,6 +66,20 @@ namespace luabind
 				}
 			}
 
+			static void gettable(lua_State* L, const char* name) noexcept
+			{
+				lua_pushstring(L, name);
+				if (!lua_rawget(L, -2))
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushstring(L, name);
+					lua_pushvalue(L, -2);
+					lua_rawset(L, -4);
+				}
+				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
+			}
+
 		protected:
 			virtual void enroll(lua_State*) const noexcept = 0;
 
@@ -122,7 +136,7 @@ namespace luabind
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -4, INDEX_WRITER);
 				}
-			}
+			}			
 
 		private:
             friend struct luabind::scope;
@@ -546,21 +560,7 @@ namespace luabind
 				: name(n)
 			{
 
-			}
-
-			static void gettable(lua_State* L, const char* name) noexcept
-			{
-				lua_pushstring(L, name);
-				if (!lua_rawget(L, -2))
-				{
-					lua_pop(L, 1);
-					lua_newtable(L);
-					lua_pushstring(L, name);
-					lua_pushvalue(L, -2);
-					lua_rawset(L, -4);
-				}
-				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
-			}
+			}			
 
 			static void getmetatable(lua_State* L, const char* full_name) noexcept
 			{

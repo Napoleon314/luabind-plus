@@ -30,10 +30,30 @@
 
 #pragma once
 
+#include <vector>
+#include <unordered_map>
 #include <vtd/smart_ptr.h>
 
 namespace luabind
 {
+	namespace detail
+	{
+		struct class_info_data
+		{
+			int type_id = 0;
+			int class_id = 0;
+			std::vector<std::pair<ptrdiff_t, class_info_data*>> base_vec;
+		};
+
+		template<class _Type>
+		struct class_info
+		{
+			static std::unordered_map<lua_State*, class_info_data> info_data_map;
+		};
+
+		template<class _Type> std::unordered_map<lua_State*, class_info_data> class_info<_Type>::info_data_map;
+	}
+
 	enum RelatedIndex
 	{
 		INDEX_NOP,
@@ -42,12 +62,14 @@ namespace luabind
 		INDEX_FUNC,
 		INDEX_READER,
 		INDEX_WRITER,
+		INDEX_CLASS,
 		INDEX_MAX
 	};
 
 	struct env : vtd::ref_obj
 	{
 		lua_State* L = nullptr;
+		std::unordered_map<int, detail::class_info_data*> class_map;
 
 		static int __gc(lua_State* L) noexcept
 		{
