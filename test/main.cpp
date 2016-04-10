@@ -160,6 +160,12 @@ int reader(lua_State* L) noexcept
 	return 1;
 }
 
+int writer(lua_State* L) noexcept
+{
+	test_reader = luabind::type_traits<int>::get(L, 1);
+	return 0;
+}
+
 int main()
 {
 	using namespace std;
@@ -185,12 +191,16 @@ int main()
 			def("add", &add, 2, 3),
 			def("test", &test, std::make_tuple(1, 2.0f), 3),
 			def_const("CONST_VAL", 5),
-			def_reader<decltype(test_reader)>("test_reader", [=]() noexcept
-			{
-				return test_reader;
-			}),
 			def_reader("test_reader2", &get_reader2),
-			def_readonly("test_reader3", test_reader3)
+			def_readonly("test_reader3", test_reader3),
+			def_readwrite("test_reader", test_reader),
+			def_writer<int>("test_reader2", [&](int val) noexcept
+			{
+				test_reader2 = val;
+			})
+
+
+			//def_manual_writer("test_reader", &writer)
 		];
 
 		lua_pushcfunction(L, &lua_print);

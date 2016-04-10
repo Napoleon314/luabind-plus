@@ -113,6 +113,17 @@ namespace luabind
 				}
 			}
 
+			static void getwriter(lua_State* L) noexcept
+			{
+				if (lua_rawgeti(L, -2, INDEX_WRITER) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -4, INDEX_WRITER);
+				}
+			}
+
 		private:
             friend struct luabind::scope;
 			enrollment* next = nullptr;
@@ -192,7 +203,7 @@ namespace luabind
 				return type_traits<_Type>::push(L, func());
 			}
 
-			func_reader(const char* n, std::function<_Type()>&& f) noexcept
+			func_reader(const char* n, func_type&& f) noexcept
 				: name(n), func(f) {}
 
 			virtual void enroll(lua_State* L) const noexcept
@@ -215,6 +226,84 @@ namespace luabind
 			func_type func;
 		};
 
+		template <class... _Types>
+		struct manual_writer : enrollment
+		{
+			typedef std::tuple<_Types...> holder;
+			static_assert(type_traits<holder>::can_push, "holder types wrong.");
+
+			manual_writer(const char* n, lua_CFunction f, _Types... pak) noexcept
+				: name(n), func(f), upvalues(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				getwriter(L);
+				lua_pushstring(L, name);
+				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
+					type_traits<holder>::stack_count);
+				lua_pushcclosure(L, func, type_traits<holder>::stack_count);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			lua_CFunction func;
+			holder upvalues;
+		};
+
+		template <class _Type>
+		int value_writer(lua_State* L) noexcept
+		{
+			static_assert(type_traits<_Type>::can_get
+				&& type_traits<_Type>::stack_count == 1, "wrong type for writer.");
+			*(_Type*)lua_touserdata(L, lua_upvalueindex(1)) = type_traits<_Type>::get(L, -1);
+			return 0;
+		}
+
+		template <class _Type>
+		struct func_writer : enrollment
+		{
+			static_assert(type_traits<_Type>::can_get
+				&& type_traits<_Type>::stack_count == 1, "wrong type for writer.");
+
+			typedef std::function<void(_Type)> func_type;
+
+			static int __gc(lua_State* L) noexcept
+			{
+				func_type& func = *(func_type*)lua_touserdata(L, 1);
+				func.~func_type();
+				return 0;
+			}
+
+			static int writer(lua_State* L) noexcept
+			{
+				func_type& func = *(func_type*)lua_touserdata(L, lua_upvalueindex(1));
+				func(type_traits<_Type>::get(L, -1));
+				return 0;
+			}
+
+			func_writer(const char* n, func_type&& f) noexcept
+				: name(n), func(f) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				getwriter(L);
+				lua_pushstring(L, name);
+				void* data = lua_newuserdata(L, sizeof(func_type));
+				new(data) func_type(func);
+				lua_newtable(L);
+				lua_pushstring(L, "__gc");
+				lua_pushcfunction(L, &__gc);
+				lua_rawset(L, -3);
+				lua_setmetatable(L, -2);
+				lua_pushcclosure(L, &writer, 1);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			func_type func;
+		};
 
 		template <class... _Types>
 		struct manual_func : enrollment
@@ -405,22 +494,42 @@ namespace luabind
 
 		static int __newindex(lua_State* L) noexcept
 		{
-			lua_pushvalue(L, lua_upvalueindex(1));
-			lua_pushvalue(L, -3);
-			if (lua_gettable(L, -5) > 1)
+			if (lua_getmetatable(L, 1))
+			{
+				if (lua_rawgeti(L, -1, INDEX_WRITER) == LUA_TTABLE)
+				{
+					lua_pushvalue(L, 2);
+					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+					{
+						lua_pushvalue(L, 3);
+						if (lua_pcall(L, 1, 0, 0))
+						{
+							return luaL_error(L, lua_tostring(L, -1));
+						}
+						else
+						{
+							return 0;
+						}
+					}
+				}
+				lua_settop(L, 3);
+			}			
+			lua_pushvalue(L, 2);
+			if (lua_gettable(L, lua_upvalueindex(1)) > 1)
 			{				
 				lua_getglobal(L, "tostring");
-				lua_pushvalue(L, 2);
+				lua_pushvalue(L, 3);
 				lua_call(L, 1, 1);
 				const char* s = lua_tostring(L, -1);
 				const char* scope_name = lua_tostring(L, lua_upvalueindex(2));
+				const char* name = lua_tostring(L, 2);
 				if (*scope_name)
 				{
-					return luaL_error(L, "new index \"%s.%s\" causing a luabind name conflict.", scope_name, s);
+					return luaL_error(L, "\"%s.%s = %s\" causing a luabind name conflict.", scope_name, name, s);
 				}
 				else
 				{
-					return luaL_error(L, "new index \"%s\" causing a luabind name conflict.", s);
+					return luaL_error(L, "\"%s = %s\" causing a luabind name conflict.", name, s);
 				}
 			}
 			else
@@ -588,6 +697,12 @@ namespace luabind
 		return scope(new detail::manual_reader<_Types...>(name, func, pak...));
 	}
 
+	template <class... _Types>
+	scope def_manual_writer(const char* name, lua_CFunction func, _Types... pak) noexcept
+	{
+		return scope(new detail::manual_writer<_Types...>(name, func, pak...));
+	}
+
 	template <class _Func, class... _Types>
 	scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
 	{
@@ -627,5 +742,31 @@ namespace luabind
 	{
 		return scope(new detail::func_reader<_Type>(name,
 			std::move(std::function<_Type()>(func))));
+	}
+
+	template <class _Type>
+	scope def_writeonly(const char* name, _Type& val) noexcept
+	{
+		return scope(new detail::manual_writer<void*>(name,
+			detail::value_writer<_Type>, (void*)&val));
+	}
+
+	template <class _Type>
+	scope def_writer(const char* name, std::function<void(_Type)> func) noexcept
+	{
+		return scope(new detail::func_writer<_Type>(name, std::move(func)));
+	}
+
+	template <class _Type>
+	scope def_writer(const char* name, void(*func)(_Type)) noexcept
+	{
+		return scope(new detail::func_writer<_Type>(name,
+			std::move(std::function<void(_Type)>(func))));
+	}
+
+	template <class _Type>
+	scope def_readwrite(const char* name, _Type& val) noexcept
+	{		
+		return def_writeonly(name, val), def_readonly(name, val);
 	}
 }

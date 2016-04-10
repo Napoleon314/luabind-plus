@@ -1,3 +1,10 @@
+luabind.test_reader = 50
+luabind.test_reader2 = 80
+luabind.ttt = 6
+
+print(luabind.test_reader, luabind.ttt)
+print(luabind.test_reader2)
+
 a = 0
 print(a)
 
