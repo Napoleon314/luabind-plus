@@ -166,14 +166,23 @@ int writer(lua_State* L) noexcept
 	return 0;
 }
 
-class TestClass1
+class Test1
 {
 public:
-	static int val0;
+    static int val0;
+    
+    int a = 0;
+    
+};
+
+class TestClass1 : public Test1
+{
+public:
+	int b = 0;
 
 };
 
-int TestClass1::val0 = 40;
+int Test1::val0 = 40;
 
 int main()
 {
@@ -207,11 +216,12 @@ int main()
 			{
 				test_reader2 = val;
 			}),
-			class_<TestClass1>("TestClass1")[
-				def_readwrite("val0", TestClass1::val0)
+			class_<Test1>("Test1")[
+				def_readwrite("val0", Test1::val0)
 			],
-			class_<TestClass1>("TestClass1")
-
+			class_<TestClass1, Test1>("TestClass1").
+                def(constructor<int>()).
+                def(constructor<int,int>())
 
 			//def_manual_writer("test_reader", &writer)
 		];
