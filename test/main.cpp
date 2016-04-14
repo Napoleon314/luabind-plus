@@ -209,7 +209,8 @@ int main()
 			}),
 			class_<TestClass1>("TestClass1")[
 				def_readwrite("val0", TestClass1::val0)
-			]
+			],
+			class_<TestClass1>("TestClass1")
 
 
 			//def_manual_writer("test_reader", &writer)

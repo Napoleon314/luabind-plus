@@ -35,21 +35,19 @@ namespace vtd
 	class ref_obj
 	{
 	public:
-		ref_obj() noexcept
-		{
-			ref_count.store(0, std::memory_order_relaxed);
-		}
+		ref_obj() noexcept = default;
 
 		virtual ~ref_obj() noexcept = default;
 
 		void inc() noexcept
 		{
-			ref_count.fetch_add(1, std::memory_order_relaxed);
+			++ref_count;
 		}
 
 		void dec() noexcept
 		{
-			if (ref_count.fetch_sub(1, std::memory_order_relaxed) == 1)
+			--ref_count;
+			if (!ref_count)
 			{
 				delete_this();
 			}
@@ -57,7 +55,7 @@ namespace vtd
 
 		inline size_t get_ref_count() const noexcept
 		{
-			return ref_count.load(std::memory_order_relaxed);
+			return ref_count;
 		}
 
 	protected:
@@ -67,7 +65,7 @@ namespace vtd
 		}
 
 	private:
-		std::atomic_int ref_count;
+		size_t ref_count = 0;
 	};
 
 	template <class _Ty>

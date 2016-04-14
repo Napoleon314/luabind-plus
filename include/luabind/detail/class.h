@@ -34,6 +34,31 @@
 
 namespace luabind
 {
+	template <class... _Types>
+	struct constructor {};
+
+	namespace detail
+	{
+		template <class _Der, class _Shell, class... _Types>
+		struct construct_func : enrollment
+		{
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
+
+			construct_func(_Shell& f, _Types... pak) noexcept
+				: func(std::move(f.func)), values(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+			}
+
+			func_type func;
+			val_type values;
+		};
+
+	}
+
 	template<class _Der, class... _Bases>
 	struct base_finder;
 
@@ -189,14 +214,9 @@ namespace luabind
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
-
-					//lua_pushvalue(L, -1);
-
-					//int top = lua_gettop(L);
-					//top = lua_gettop(L);
-
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -4, INDEX_CLASS);
 				}
-				int top = lua_gettop(L);
 				member_scope.enroll(L);
 				lua_pop(L, 1);
 				inner_scope.enroll(L);
@@ -217,6 +237,12 @@ namespace luabind
 		class_& operator [] (scope s) noexcept
 		{
 			((enrollment*)chain)->inner_scope.operator,(s);
+			return *this;
+		}
+
+		template <class... _Types>
+		class_& def(constructor<_Types...> con) noexcept
+		{
 			return *this;
 		}
 

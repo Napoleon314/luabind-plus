@@ -354,7 +354,7 @@ namespace luabind
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
-				LUABIND_HOLD_STACK(L);				
+				LUABIND_HOLD_STACK(L);
 				if (lua_rawgeti(L, -2, INDEX_FUNC) != LUA_TTABLE)
 				{
 					lua_pop(L, 1);
