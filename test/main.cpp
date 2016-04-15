@@ -194,11 +194,18 @@ public:
 		b = _b;
 	}
 
+	virtual ~TestClass1() noexcept
+	{
+
+	}
+
 	int b = 0;
 
 };
 
 int Test1::val0 = 40;
+
+#include <memory>
 
 int main()
 {

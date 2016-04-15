@@ -34,6 +34,22 @@
 
 namespace luabind
 {
+	enum userdata_type
+	{
+		USERDATA_CLASS,
+		USERDATA_CUSTOMIZED_BEGIN
+	};
+
+	enum storage_type
+	{
+		STORAGE_LUA,
+		STORAGE_REF,
+		STORAGE_U_PTR,
+		STORAGE_S_PTR,
+		STORAGE_W_PTR,
+		STORAGE_MAX
+	};
+
 	template <class... _Types>
 	struct constructor
 	{
@@ -44,10 +60,17 @@ namespace luabind
 		{
 			new(m) _Der(pak...);
 		}
-	};
+	}; 
 
 	namespace detail
 	{
+		struct header
+		{
+			short type;
+			short storage;
+			int type_id;
+		};		
+
 		template <class _Der, class _Shell>
 		struct constructor_holder : func_holder
 		{
@@ -71,8 +94,15 @@ namespace luabind
 				int top = lua_gettop(L);
 				if (_Shell::construct_test(L, top))
 				{
+					header* data = (header*)lua_newuserdata(L, sizeof(_Der) + sizeof(header));
+					data->type = USERDATA_CLASS;
+					data->storage = STORAGE_LUA;
+					env& e = *get_env(L);
+					data->type_id = detail::class_info<_Der>::info_data_map[e.L].type_id;
 					func_invoker<1, _Shell::default_start, _Shell, void*>::invoke(
-						func, vals, L, top, lua_newuserdata(L, sizeof(_Der)));
+						func, vals, L, top, data + 1);
+					lua_pushvalue(L, lua_upvalueindex(3));
+					lua_setmetatable(L, -2);
 					return 1;
 				}
 				else if (next)
@@ -112,14 +142,13 @@ namespace luabind
 					lua_pushcfunction(L, &func_holder::__gc);
 					lua_rawset(L, -3);
 					lua_setmetatable(L, -2);
-
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -5, INDEX_CONSTRUCTOR);
-
 					lua_pushstring(L, "__call");
 					lua_pushvalue(L, -2);					
-					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
-					lua_pushcclosure(L, &func_holder::construct_entry, 2);
+					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);					
+					lua_pushvalue(L, -5);
+					lua_pushcclosure(L, &func_holder::construct_entry, 3);
 					lua_rawset(L, -6);
 				}
 				else
@@ -218,6 +247,23 @@ namespace luabind
 			return luaL_error(L, "\"%s.%s = %s\" try to modify a inexistent value in a c++ class.", scope_name, name, s);
 		}
 
+		static int __gc(lua_State* L) noexcept
+		{
+			detail::header* data = (detail::header*)lua_touserdata(L, -1);
+			if (data->type == USERDATA_CLASS)
+			{
+				switch (data->storage)
+				{
+				case STORAGE_LUA:
+					((_Der*)(data + 1))->~_Der();
+					break;
+				default:
+					break;
+				}
+			}
+			return 0;
+		}
+
 		struct enrollment : detail::enrollment
 		{
 			static detail::class_info_data* get_class_info(lua_State* L) noexcept
@@ -226,8 +272,8 @@ namespace luabind
 				detail::class_info_data* info = &(detail::class_info<_Der>::info_data_map[e.L]);
 				if (!info->type_id)
 				{
-					info->type_id = int(e.class_map.size() + 1);
-					e.class_map[info->type_id] = info;
+					info->type_id = int(e.class_map.size());
+					e.class_map.push_back(info);
 					info->base_vec.clear();
 					base_finder<_Der, _Bases...>::find(e, info->base_vec);
 					LB_ASSERT(info->base_vec.size() == (sizeof...(_Bases)));
@@ -304,6 +350,9 @@ namespace luabind
 					lua_newtable(L);
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -4, INDEX_CLASS);
+					lua_pushstring(L, "__gc");
+					lua_pushcfunction(L, &__gc);
+					lua_rawset(L, -3);
 				}
 				member_scope.enroll(L);
 				lua_pop(L, 1);

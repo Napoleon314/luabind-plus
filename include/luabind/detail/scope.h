@@ -34,7 +34,7 @@ namespace luabind
 {
 	struct scope;
 
-	enum SocpeType
+	enum socpe_type
 	{
 		SCOPE_NAMESPACE,
 		SCOPE_ENUM,
@@ -42,7 +42,7 @@ namespace luabind
 		SCOPE_MAX
 	};
 
-	enum InnerType
+	enum inner_type
 	{
 		INNER_NOP,
 		INNER_READER,

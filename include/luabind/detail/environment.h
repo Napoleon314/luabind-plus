@@ -54,7 +54,7 @@ namespace luabind
 		template<class _Type> std::unordered_map<lua_State*, class_info_data> class_info<_Type>::info_data_map;
 	}
 
-	enum RelatedIndex
+	enum related_index
 	{
 		INDEX_NOP,
 		INDEX_SCOPE,
@@ -71,11 +71,17 @@ namespace luabind
 	struct env : vtd::ref_obj
 	{
 		lua_State* L = nullptr;
-		std::unordered_map<int, detail::class_info_data*> class_map;
+		std::vector<detail::class_info_data*> class_map;
 
 		static int __gc(lua_State* L) noexcept
 		{
 			env* e = *(env**)lua_touserdata(L, 1);
+			for (auto info : e->class_map)
+			{
+				info->type_id = 0;
+				info->class_id = 0;
+				info->base_vec.clear();
+			}
 			e->L = nullptr;
 			e->dec();
 			return 0;
