@@ -131,6 +131,11 @@ int add(int a, int b) noexcept
 	return a + b;
 }
 
+void test_no_return() noexcept
+{
+
+}
+
 std::tuple<int,int> test(std::tuple<int, float> a, int b) noexcept
 {
 	return std::make_tuple(std::get<0>(a), b);
@@ -183,6 +188,12 @@ public:
 		b = _b;
 	}
 
+	TestClass1(int _a, int _b) noexcept
+	{
+		a = _a;
+		b = _b;
+	}
+
 	int b = 0;
 
 };
@@ -213,6 +224,7 @@ int main()
 			def("add", &add, 1),
 			def("add", &add, 2, 3),
 			def("test", &test, std::make_tuple(1, 2.0f), 3),
+			def("test_no_return", &test_no_return),
 			def_const("CONST_VAL", 5),
 			def_reader("test_reader2", &get_reader2),
 			def_readonly("test_reader3", test_reader3),
@@ -225,7 +237,10 @@ int main()
 			///	def_readwrite("val0", Test1::val0)
 			//],
 			class_<TestClass1>("TestClass1").
-				def(constructor<int>(), 1)
+			def(constructor<int, int>()).
+			def(constructor<int>(), 1)[
+				def_readwrite("val0", Test1::val0)
+			]
 
 			//def_manual_writer("test_reader", &writer)
 		];

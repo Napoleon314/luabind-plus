@@ -96,6 +96,15 @@ namespace luabind
 		}
 	};
 
+	template <int idx, class _This, class... _Rest>
+	struct construct_tester
+	{
+		static bool test(lua_State* L, int top) noexcept
+		{
+			return func_tester<1, 1, idx, _Rest...>::test(L, top);
+		}
+	};
+
     template <int base, int idx, typename _Shell, class... _Types>
     struct func_param_maker;
 

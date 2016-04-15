@@ -124,6 +124,11 @@ namespace luabind
 			return func_tester<0, 0, idx, _Types...>::test(L, top);
 		}
 
+		static bool construct_test(lua_State* L, int top) noexcept
+		{
+			return construct_tester<idx, _Types...>::test(L, top);
+		}
+
 		func_shell(func_type&& f) noexcept : func(f) {}
 
 		func_type func;
@@ -162,8 +167,9 @@ namespace luabind
 			int ret = h->call(L);
 			if (ret < 0)
 			{
-				return luaL_error(L, "call c++ function[%s] with wrong params.",
-					lua_tostring(L, lua_upvalueindex(2)));
+				return luaL_error(L, "call c++ function[%s.%s] with wrong params.",
+					lua_tostring(L, lua_upvalueindex(2)),
+					lua_tostring(L, lua_upvalueindex(3)));
 			}
 			else
 			{
@@ -171,10 +177,55 @@ namespace luabind
 			}			
 		}
 
+		static int construct_entry(lua_State* L) noexcept
+		{
+			func_holder* h = *(func_holder**)lua_touserdata(L, lua_upvalueindex(1));
+			int ret = h->call(L);
+			if (ret < 0)
+			{
+				return luaL_error(L, "construct c++ class[%s] with wrong params.",
+					lua_tostring(L, lua_upvalueindex(2)));
+			}
+			else
+			{
+				return ret;
+			}
+		}
+
 		func_holder* next = nullptr;
 	};
 
-	template <class _Shell, class... _Types>
+	template <class _Shell>
+	struct do_invoke_normal
+	{
+		static int invoke(typename _Shell::func_type& func, typename _Shell::val_type& vals,
+			lua_State* L, int top) noexcept
+		{
+			return type_traits<typename _Shell::ret_type>::push(L,
+				func_invoker<0, _Shell::default_start, _Shell>::invoke(
+					func, vals, L, top));
+		}
+	};
+
+	template <class _Shell>
+	struct do_invoke_no_return
+	{
+		static int invoke(typename _Shell::func_type& func, typename _Shell::val_type& vals,
+			lua_State* L, int top) noexcept
+		{
+			func_invoker<0, _Shell::default_start, _Shell>::invoke(func, vals, L, top);
+			return 0;
+		}
+	};
+
+	template <class _Shell>
+	struct do_invoke : std::conditional < std::is_same<typename _Shell::ret_type, void>::value,
+		do_invoke_no_return<_Shell>, do_invoke_normal < _Shell >> ::type
+	{
+
+	};
+
+	template <class _Shell>
 	struct func_holder_impl : func_holder
 	{
 		typedef typename _Shell::func_type func_type;
@@ -187,10 +238,8 @@ namespace luabind
 		{
 			int top = lua_gettop(L);
 			if (_Shell::test(L, top))
-			{
-				return type_traits<typename _Shell::ret_type>::push(L,
-					func_invoker<0, _Shell::default_start, _Shell>::invoke(
-						func, vals, L, top));
+			{				
+				return do_invoke<_Shell>::invoke(func, vals, L, top);			
 			}
 			else if (next)
 			{

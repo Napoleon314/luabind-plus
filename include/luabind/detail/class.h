@@ -48,6 +48,48 @@ namespace luabind
 
 	namespace detail
 	{
+		template <class _Der, class _Shell>
+		struct constructor_holder : func_holder
+		{
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
+
+			static_assert(std::is_same<typename _Shell::ret_type, void>::value
+				&& std::is_same<typename std::tuple_element<0, typename _Shell::tuple>::type, void*>::value
+				&& _Shell::default_start >= 1, "wrong construct function.");
+
+			constructor_holder(const func_type& f, const val_type& v) noexcept
+				: func(f), vals(v) {}
+
+			virtual ~constructor_holder() noexcept
+			{
+
+			}
+
+			virtual int call(lua_State* L) noexcept
+			{				
+				int top = lua_gettop(L);
+				if (_Shell::construct_test(L, top))
+				{
+					func_invoker<1, _Shell::default_start, _Shell, void*>::invoke(
+						func, vals, L, top, lua_newuserdata(L, sizeof(_Der)));
+					return 1;
+				}
+				else if (next)
+				{
+					return next->call(L);
+				}
+				else
+				{
+					return -1;
+				}
+			}
+
+			func_type func;
+			val_type vals;
+		};
+
+
 		template <class _Der, class _Shell, class... _Types>
 		struct construct_func : enrollment
 		{
@@ -60,9 +102,42 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
-				//int top = lua_gettop(L);
+				if (lua_rawgeti(L, -3, INDEX_CONSTRUCTOR) != LUA_TUSERDATA)
+				{
+					lua_pop(L, 1);
+					void* data = lua_newuserdata(L, sizeof(func_holder*));
+					*(func_holder**)data = new constructor_holder<_Der, _Shell>(func, values);
+					lua_newtable(L);
+					lua_pushstring(L, "__gc");
+					lua_pushcfunction(L, &func_holder::__gc);
+					lua_rawset(L, -3);
+					lua_setmetatable(L, -2);
 
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -5, INDEX_CONSTRUCTOR);
 
+					lua_pushstring(L, "__call");
+					lua_pushvalue(L, -2);					
+					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
+					lua_pushcclosure(L, &func_holder::construct_entry, 2);
+					lua_rawset(L, -6);
+				}
+				else
+				{
+					func_holder* h = *(func_holder**)lua_touserdata(L, -1);
+					while (true)
+					{
+						if (h->next)
+						{
+							h = h->next;
+						}
+						else
+						{
+							h->next = new constructor_holder<_Der, _Shell>(func, values);
+							break;
+						}
+					}
+				}
 			}
 
 			func_type func;
@@ -101,6 +176,8 @@ namespace luabind
 	class class_ : public scope
 	{
 	public:
+		static_assert(std::is_class<_Der>::value, "_Der need to be a class.");
+
 		static int __tostring(lua_State* L) noexcept
 		{
 			char buf[LB_BUF_SIZE];
@@ -269,6 +346,4 @@ namespace luabind
 		}
 		
 	};
-
-
 }

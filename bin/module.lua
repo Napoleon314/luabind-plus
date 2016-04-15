@@ -26,3 +26,10 @@ print(luabind.test_reader)
 print(luabind.test_reader2)
 print(luabind.test_reader3)
 --luabind.test_reader = 9
+
+obj = luabind.TestClass1()
+obj = luabind.TestClass1(5)
+obj = luabind.TestClass1(5,6)
+print(obj)
+--obj = luabind.TestClass1(5,6, 7, 8)
+--luabind.add(5, 6, 7)
