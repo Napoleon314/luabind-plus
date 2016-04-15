@@ -178,6 +178,11 @@ public:
 class TestClass1 : public Test1
 {
 public:
+	TestClass1(int _b) noexcept
+	{
+		b = _b;
+	}
+
 	int b = 0;
 
 };
@@ -216,12 +221,11 @@ int main()
 			{
 				test_reader2 = val;
 			}),
-			class_<Test1>("Test1")[
-				def_readwrite("val0", Test1::val0)
-			],
-			class_<TestClass1, Test1>("TestClass1").
-                def(constructor<int>()).
-                def(constructor<int,int>())
+			//class_<Test1>("Test1")[
+			///	def_readwrite("val0", Test1::val0)
+			//],
+			class_<TestClass1>("TestClass1").
+				def(constructor<int>(), 1)
 
 			//def_manual_writer("test_reader", &writer)
 		];

@@ -35,7 +35,16 @@
 namespace luabind
 {
 	template <class... _Types>
-	struct constructor {};
+	struct constructor
+	{
+		typedef void func_type(void*, _Types...);
+
+		template <class _Der>
+		static void default_constructor(void* m, _Types... pak) noexcept
+		{
+			new(m) _Der(pak...);
+		}
+	};
 
 	namespace detail
 	{
@@ -51,12 +60,14 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
+				int top = lua_gettop(L);
+
+
 			}
 
 			func_type func;
 			val_type values;
 		};
-
 	}
 
 	template<class _Der, class... _Bases>
@@ -240,12 +251,23 @@ namespace luabind
 			return *this;
 		}
 
-		template <class... _Types>
-		class_& def(constructor<_Types...> con) noexcept
+		template <class _Constructor, class... _Types>
+		class_& def(_Constructor, _Types... pak) noexcept
 		{
-			return *this;
+			return def_constructor<typename _Constructor::func_type, _Types...>(
+				&_Constructor::default_constructor<_Der>, pak...);
 		}
 
+		template <class _Func, class... _Types>
+		class_& def_constructor(std::function<_Func> func, _Types... pak) noexcept
+		{
+			auto shell = create_func_shell<count_func_params((_Func*)nullptr) - (sizeof...(_Types))>(
+				std::move(func));
+			((enrollment*)chain)->member_scope.operator,
+				(scope(new detail::construct_func<_Der, decltype(shell), _Types...>(shell, pak...)));
+			return *this;
+		}
+		
 	};
 
 
