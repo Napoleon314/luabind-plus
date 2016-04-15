@@ -60,7 +60,7 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
-				int top = lua_gettop(L);
+				//int top = lua_gettop(L);
 
 
 			}
@@ -255,7 +255,7 @@ namespace luabind
 		class_& def(_Constructor, _Types... pak) noexcept
 		{
 			return def_constructor<typename _Constructor::func_type, _Types...>(
-				&_Constructor::default_constructor<_Der>, pak...);
+				&(_Constructor::template default_constructor<_Der>), pak...);
 		}
 
 		template <class _Func, class... _Types>
