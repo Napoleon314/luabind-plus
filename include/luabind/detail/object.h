@@ -460,7 +460,7 @@ namespace luabind
 	};
 
 	template <>
-	struct object_traits<object>
+	struct type_traits<object>
 	{
 		static constexpr bool can_get = true;
 

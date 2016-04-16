@@ -288,6 +288,15 @@ int main()
 
 		static_assert(count_func_params(&add) == 2, "");
 
+		int top = lua_gettop(L);
+
+		TestClass1 aaa(5, 6);
+		int a = type_traits<TestClass1>::push(L, aaa);
+		top = lua_gettop(L);
+		bool b = type_traits<const TestClass1&&>::test(L, -1);
+
+		TestClass1 bbb = type_traits<TestClass1>::get(L, -1);
+		lua_pop(L, 1);
 		/*char input_buf[65536];
 		while (true)
 		{

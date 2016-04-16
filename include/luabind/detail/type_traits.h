@@ -173,111 +173,7 @@ namespace luabind
 	};
 
 	template <class _Ty>
-	struct object_traits
-	{
-		static_assert(std::is_class<_Ty>::value, "_Ty is not a class or struct.");
-
-		static constexpr bool can_get = false;
-
-		static constexpr bool can_push = false;
-
-		static constexpr int stack_count = 0;
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return false;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			return make_default();
-		}
-
-		static int push(lua_State* L, _Ty val) noexcept
-		{
-			return 0;
-		}
-
-		static _Ty make_default() noexcept
-		{
-			return _Ty();
-		}
-	};
-
-	template <class _Ty>
-	struct object_ptr_traits
-	{
-		static_assert(std::is_pointer<_Ty>::value
-			&& std::is_class<typename std::remove_pointer<_Ty>::type>::value,
-			"_Ty is not a class pointer.");
-
-		static constexpr bool can_get = false;
-
-		static constexpr bool can_push = false;
-
-		static constexpr int stack_count = 0;
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return false;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			return make_default();
-		}
-
-		static int push(lua_State* L, _Ty val) noexcept
-		{
-			return 0;
-		}
-
-		static _Ty make_default() noexcept
-		{
-			return nullptr;
-		}
-	};
-
-	template <class _Ty>
-	struct value_ptr_traits
-	{
-		static_assert(std::is_pointer<_Ty>::value, "_Ty is not a pointer.");
-
-		static constexpr bool can_get = false;
-
-		static constexpr bool can_push = false;
-
-		static constexpr int stack_count = 0;
-
-		static bool test(lua_State* L, int idx) noexcept
-		{
-			return false;
-		}
-
-		static _Ty get(lua_State* L, int idx) noexcept
-		{
-			return make_default();
-		}
-
-		static int push(lua_State* L, _Ty val) noexcept
-		{
-			return 0;
-		}
-
-		static _Ty make_default() noexcept
-		{
-			return nullptr;
-		}
-	};
-
-	template <class _Ty>
-	struct pointer_traits : std::conditional <
-		std::is_class<typename std::remove_pointer<_Ty>::type>::value,
-		object_ptr_traits<_Ty>, value_ptr_traits < _Ty >> ::type
-	{
-		static_assert(std::is_pointer<_Ty>::value, "_Ty is not a pointer.");
-
-	};
+	struct object_traits;
 
 	template <class _Ty>
 	struct value_traits
@@ -292,15 +188,13 @@ namespace luabind
 	template <class _Ty>
 	struct type_traits : std::conditional < std::is_enum<_Ty>::value,
 		enum_traits<_Ty>, typename std::conditional < std::is_arithmetic<_Ty>::value,
-		number_traits<_Ty>, typename std::conditional<std::is_class<_Ty>::value,
-		object_traits<_Ty>, typename std::conditional<std::is_pointer<_Ty>::value,
-		pointer_traits<_Ty>, value_traits<_Ty >> ::type> ::type>::type>::type
+		number_traits<_Ty>, object_traits<_Ty>>::type>::type
 	{
 
 	};
 
 	template <>
-	struct value_traits<void>
+	struct type_traits<void>
 	{
 		static constexpr bool can_get = true;
 
@@ -325,7 +219,7 @@ namespace luabind
 	};
 
 	template <>
-	struct value_ptr_traits<char*>
+	struct type_traits<char*>
 	{
 		static constexpr bool can_get = false;
 
@@ -356,7 +250,7 @@ namespace luabind
 	};
 
 	template <>
-	struct value_ptr_traits<const char*>
+	struct type_traits<const char*>
 	{
 		static constexpr bool can_get = true;
 
@@ -387,7 +281,7 @@ namespace luabind
 	};
 
 	template <>
-	struct value_ptr_traits<void*>
+	struct type_traits<void*>
 	{
 		static constexpr bool can_get = true;
 
@@ -418,7 +312,7 @@ namespace luabind
 	};
 
 	template <>
-	struct value_ptr_traits<lua_CFunction>
+	struct type_traits<lua_CFunction>
 	{
 		static constexpr bool can_get = true;
 
@@ -449,7 +343,7 @@ namespace luabind
 	};
 
 	template <>
-	struct value_ptr_traits<lua_State*>
+	struct type_traits<lua_State*>
 	{
 		static constexpr bool can_get = true;
 
@@ -541,10 +435,10 @@ namespace luabind
 	};
 
 	template <class... _Types>
-	struct object_traits<std::tuple<_Types...>>;
+	struct type_traits<std::tuple<_Types...>>;
 
 	template <>
-	struct object_traits<std::tuple<>>
+	struct type_traits<std::tuple<>>
 	{
 		static constexpr bool can_get = true;
 
@@ -574,7 +468,7 @@ namespace luabind
 	};
 
 	template <class _This, class... _Rest>
-	struct object_traits<std::tuple<_This, _Rest...>>
+	struct type_traits<std::tuple<_This, _Rest...>>
 	{
 		static constexpr bool can_get = can_get_pak<_This, _Rest...>::value;
 

@@ -43,7 +43,7 @@ namespace luabind
 	enum storage_type
 	{
 		STORAGE_LUA,
-		STORAGE_REF,
+		STORAGE_I_PTR,
 		STORAGE_U_PTR,
 		STORAGE_S_PTR,
 		STORAGE_W_PTR,
@@ -96,9 +96,8 @@ namespace luabind
 				{
 					header* data = (header*)lua_newuserdata(L, sizeof(_Der) + sizeof(header));
 					data->type = USERDATA_CLASS;
-					data->storage = STORAGE_LUA;
-					env& e = *get_env(L);
-					data->type_id = detail::class_info<_Der>::info_data_map[e.L].type_id;
+					data->storage = STORAGE_LUA;					
+					data->type_id = detail::class_info<_Der>::info_data_map[get_main(L)].type_id;
 					func_invoker<1, _Shell::default_start, _Shell, void*>::invoke(
 						func, vals, L, top, data + 1);
 					lua_pushvalue(L, lua_upvalueindex(3));
@@ -173,6 +172,167 @@ namespace luabind
 			val_type values;
 		};
 	}
+
+	template <class _Ty>
+	struct object_traits
+	{
+		typedef typename std::remove_cv<_Ty>::type type;
+		static_assert(std::is_class<type>::value, "_Ty is not a class or struct.");
+
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			if (lua_type(L, idx) == LUA_TUSERDATA)
+			{
+				detail::header* data = (detail::header*)lua_touserdata(L, idx);
+				if (data->type == USERDATA_CLASS && data->storage == STORAGE_LUA)
+				{
+					auto it = detail::class_info<type>::info_data_map.find(get_main(L));
+					if (it != detail::class_info<type>::info_data_map.end())
+					{
+						if (data->type_id == it->second.type_id)
+						{
+							return true;
+						}
+					}
+				}
+			}			
+			return false;
+		}
+
+		static _Ty get(lua_State* L, int idx) noexcept
+		{
+			detail::header* data = (detail::header*)lua_touserdata(L, idx);
+			return *(_Ty*)(data + 1);
+		}
+
+		static int push(lua_State* L, _Ty val) noexcept
+		{
+			detail::header* data = (detail::header*)lua_newuserdata(L, sizeof(_Ty) + sizeof(detail::header));
+			data->type = USERDATA_CLASS;
+			data->storage = STORAGE_LUA;			
+			data->type_id = detail::class_info<_Ty>::info_data_map[get_main(L)].type_id;
+			new(data + 1) _Ty(val);
+			return 1;
+		}
+
+		static _Ty make_default() noexcept
+		{
+			return _Ty();
+		}
+	};
+
+	template <class _Ty>
+	struct object_traits<_Ty&>
+	{
+		typedef typename std::remove_cv<_Ty>::type type;
+		static_assert(std::is_class<type>::value, "_Ty is not a class or struct.");
+
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			if (lua_type(L, idx) == LUA_TUSERDATA)
+			{
+				detail::header* data = (detail::header*)lua_touserdata(L, idx);
+				if (data->type == USERDATA_CLASS)
+				{
+					auto it = detail::class_info<type>::info_data_map.find(get_main(L));
+					if (it != detail::class_info<type>::info_data_map.end())
+					{
+						if (data->type_id == it->second.type_id)
+						{
+							return true;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+		static _Ty& get(lua_State* L, int idx) noexcept
+		{
+			detail::header* data = (detail::header*)lua_touserdata(L, idx);
+			switch (data->storage)
+			{
+			case STORAGE_LUA:
+				return *(_Ty*)(data + 1);
+			case STORAGE_I_PTR:
+				return **(_Ty**)(data + 1);
+			case STORAGE_U_PTR:
+				return **(std::unique_ptr<_Ty>*)(data + 1);
+			case STORAGE_S_PTR:
+				return **(std::shared_ptr<_Ty>*)(data + 1);
+			case STORAGE_W_PTR:
+				return *(*(std::weak_ptr<_Ty>*)(data + 1)).lock();
+			default:
+				break;
+			}
+			return make_default();
+		}
+
+		static int push(lua_State* L, _Ty& val) noexcept
+		{
+			detail::header* data = (detail::header*)lua_newuserdata(L, sizeof(_Ty) + sizeof(detail::header));
+			data->type = USERDATA_CLASS;
+			data->storage = STORAGE_LUA;
+			data->type_id = detail::class_info<_Ty>::info_data_map[get_main(L)].type_id;
+			new(data + 1) _Ty(val);
+			return 1;
+		}
+
+		static _Ty& make_default() noexcept
+		{
+			return *(_Ty*)nullptr;
+		}
+	};
+
+	template <class _Ty>
+	struct object_traits<_Ty&&>
+	{
+		typedef typename std::remove_cv<_Ty>::type type;
+		static_assert(std::is_class<type>::value, "_Ty is not a class or struct.");
+
+		static constexpr bool can_get = false;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			return false;
+		}
+
+		static _Ty&& get(lua_State* L, int idx) noexcept
+		{			
+			return make_default();
+		}
+
+		static int push(lua_State* L, _Ty& val) noexcept
+		{
+			detail::header* data = (detail::header*)lua_newuserdata(L, sizeof(_Ty) + sizeof(detail::header));
+			data->type = USERDATA_CLASS;
+			data->storage = STORAGE_LUA;
+			data->type_id = detail::class_info<_Ty>::info_data_map[get_main(L)].type_id;
+			new(data + 1) _Ty(val);
+			return 1;
+		}
+
+		static _Ty&& make_default() noexcept
+		{
+			return std::move(_Ty());
+		}
+	};
 
 	template<class _Der, class... _Bases>
 	struct base_finder;
