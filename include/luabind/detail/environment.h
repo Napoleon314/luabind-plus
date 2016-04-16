@@ -32,7 +32,7 @@
 
 #include <vector>
 #include <unordered_map>
-#include <vtd/smart_ptr.h>
+#include <vtd/intrusive_ptr.h>
 
 namespace luabind
 {
@@ -88,7 +88,7 @@ namespace luabind
 		}
 	};
 
-	typedef vtd::smart_ptr<env> env_ptr;
+	typedef vtd::intrusive_ptr<env> env_ptr;
 
 	inline lua_State* get_main(lua_State* L) noexcept
 	{

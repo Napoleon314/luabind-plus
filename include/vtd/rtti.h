@@ -145,7 +145,7 @@ namespace vtd
 			template<class _Ty>
 			static void set(identity<_Ty> _Id, base::_Base* _Desc) noexcept
 			{
-				static_assert(__is_base_of(_This, _Ty),
+				static_assert(std::is_base_of<_This, _Ty>::value,
 					"init rtti with wrong base");
 				_Desc->first = &_This::_rtti;
 				_Desc->second = base::offset<_This, _Ty>();
