@@ -260,7 +260,7 @@ namespace luabind
 		{
 			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);			
 			obj->data = val;
-			vtd::intrusive_obj<type>::inc(obj->data);
+			vtd::intrusive_obj<_Ty>::inc(obj->data);
 			return 1;
 		}
 
@@ -620,7 +620,7 @@ namespace luabind
 		{
 			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);			
 			obj->data = val;
-			vtd::intrusive_obj<type>::inc(obj->data);
+			vtd::intrusive_obj<_Ty>::inc(obj->data);
 			return 1;
 		}
 
@@ -645,7 +645,7 @@ namespace luabind
 		{
 			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);
 			obj->data = val;
-			vtd::intrusive_obj<type>::inc(obj->data);
+			vtd::intrusive_obj<_Ty>::inc(obj->data);
 			return 1;
 		}
 	};
@@ -677,7 +677,7 @@ namespace luabind
 		{
 			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);
 			obj->data = val;
-			vtd::intrusive_obj<type>::inc(obj->data);
+			vtd::intrusive_obj<_Ty>::inc(obj->data);
 			return 1;
 		}
 	};
@@ -697,7 +697,7 @@ namespace luabind
 		{
 			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);
 			obj->data = val;
-			vtd::intrusive_obj<type>::inc(obj->data);
+			vtd::intrusive_obj<_Ty>::inc(obj->data);
 			return 1;
 		}
 	};

@@ -69,7 +69,7 @@ namespace vtd
 	template <class _Ty>
 	struct intrusive_ref_obj
 	{
-		static_assert(std::is_base_of<ref_obj, _Ty>::value, "wrong type");
+        static_assert(std::is_base_of<ref_obj, typename std::remove_cv<_Ty>::type>::value, "wrong type");
 
 		static void inc(_Ty* ptr) noexcept
 		{
@@ -99,7 +99,7 @@ namespace vtd
 	};
 
 	template <class _Ty>
-	struct intrusive_obj : std::conditional<std::is_base_of<ref_obj, _Ty>::value,
+	struct intrusive_obj : std::conditional<std::is_base_of<ref_obj, typename std::remove_cv<_Ty>::type>::value,
 		intrusive_ref_obj<_Ty>, intrusive_custom_obj<_Ty> >::type
 	{
 

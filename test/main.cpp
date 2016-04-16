@@ -298,7 +298,7 @@ int main()
 		type_traits<std::weak_ptr<TestClass1>>::push(L, aaa);
 		aaa = nullptr;
 
-		bool bbb = type_traits<TestClass1&>::test(L, -1);
+		//bool bbb = type_traits<TestClass1&>::test(L, -1);
 
 		auto ptr = type_traits<std::shared_ptr<TestClass1>>::get(L, -1);
 
