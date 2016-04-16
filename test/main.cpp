@@ -203,9 +203,12 @@ public:
 
 };
 
-int Test1::val0 = 40;
+std::unique_ptr<TestClass1> create(int a, int b) noexcept
+{
+	return std::unique_ptr<TestClass1>(new TestClass1(a, b));
+}
 
-#include <memory>
+int Test1::val0 = 40;
 
 int main()
 {
@@ -246,7 +249,8 @@ int main()
 			class_<TestClass1>("TestClass1").
 			def(constructor<int, int>()).
 			def(constructor<int>(), 1)[
-				def_readwrite("val0", Test1::val0)
+				def_readwrite("val0", Test1::val0),
+				def("create", &create)
 			]
 
 			//def_manual_writer("test_reader", &writer)
@@ -288,15 +292,28 @@ int main()
 
 		static_assert(count_func_params(&add) == 2, "");
 
-		int top = lua_gettop(L);
+		//TestClass1 aaa(5, 6);
+		std::shared_ptr<TestClass1> aaa(new TestClass1(7, 8));
+	
+		type_traits<std::weak_ptr<TestClass1>>::push(L, aaa);
+		aaa = nullptr;
 
-		TestClass1 aaa(5, 6);
-		int a = type_traits<TestClass1>::push(L, aaa);
-		top = lua_gettop(L);
-		bool b = type_traits<const TestClass1&&>::test(L, -1);
+		bool bbb = type_traits<TestClass1&>::test(L, -1);
 
-		TestClass1 bbb = type_traits<TestClass1>::get(L, -1);
+		auto ptr = type_traits<std::shared_ptr<TestClass1>>::get(L, -1);
+
+		
+		
+
+		//TestClass1& bbb = type_traits<TestClass1&>::get(L, -1);
 		lua_pop(L, 1);
+
+		
+
+		//decltype(aaa) bbb(aaa);
+
+		
+
 		/*char input_buf[65536];
 		while (true)
 		{

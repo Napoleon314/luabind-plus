@@ -83,7 +83,20 @@ namespace vtd
 	};
 
 	template <class _Ty>
-	struct intrusive_custom_obj;
+	struct intrusive_custom_obj
+	{
+		static_assert(std::is_class<_Ty>::value, "wrong type");
+
+		static void inc(_Ty* ptr) noexcept
+		{
+			
+		}
+
+		static void dec(_Ty* ptr) noexcept
+		{
+			if(ptr) delete ptr;
+		}
+	};
 
 	template <class _Ty>
 	struct intrusive_obj : std::conditional<std::is_base_of<ref_obj, _Ty>::value,

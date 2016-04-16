@@ -68,6 +68,7 @@
 #include "detail/object.h"
 #include "detail/scope.h"
 #include "detail/class.h"
+#include "detail/object_traits.h"
 
 namespace luabind
 {
