@@ -42,7 +42,7 @@ namespace luabind
 		{
 			int type_id = 0;
 			int class_id = 0;
-			std::vector<std::pair<ptrdiff_t, class_info_data*>> base_vec;
+			std::unordered_map<int, std::pair<ptrdiff_t, class_info_data*>> base_map;
 		};
 
 		template<class _Type>
@@ -80,7 +80,7 @@ namespace luabind
 			{
 				info->type_id = 0;
 				info->class_id = 0;
-				info->base_vec.clear();
+				info->base_map.clear();
 			}
 			e->L = nullptr;
 			e->dec();

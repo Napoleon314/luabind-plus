@@ -51,6 +51,17 @@ namespace luabind
 		STORAGE_MAX
 	};
 
+	enum obj_inner_index
+	{
+		OBJ_NOP,
+		OBJ_FUNC_HOLDER,
+		OBJ_FUNC,		
+		OBJ_READER,
+		OBJ_WRITER,
+		OBJ_SUPER,
+		OBJ_MAX
+	};
+
 	template <class... _Types>
 	struct constructor
 	{
@@ -66,6 +77,7 @@ namespace luabind
 	template <int idx, class _Der, class _Ret, class... _Types>
 	struct member_func_shell
 	{
+		typedef typename _Der _Class;
 		typedef _Ret(_Der::*func_type)(_Types...);
 		typedef typename params_trimmer<idx, _Types...>::type val_type;
 		typedef _Ret ret_type;
@@ -74,10 +86,10 @@ namespace luabind
 		static constexpr int params_count = sizeof...(_Types);
 		static constexpr int default_start = idx;
 
-		/*static bool test(lua_State* L, int top) noexcept
+		static bool test(lua_State* L, int top) noexcept
 		{
-		return func_tester<0, 0, idx, _Types...>::test(L, top);
-		}*/
+			return func_tester<1, 0, idx, _Types...>::test(L, top);
+		}	
 
 		member_func_shell(func_type f) noexcept : func(f) {}
 
@@ -179,12 +191,26 @@ namespace luabind
 				{
 					return -1;
 				}
-			}
+			}			
 
 			func_type func;
 			val_type vals;
 		};
 
+		inline int construct_entry(lua_State* L) noexcept
+		{
+			func_holder* h = *(func_holder**)lua_touserdata(L, lua_upvalueindex(1));
+			int ret = h->call(L);
+			if (ret < 0)
+			{
+				return luaL_error(L, "construct c++ class[%s] with wrong params.",
+					lua_tostring(L, lua_upvalueindex(2)));
+			}
+			else
+			{
+				return ret;
+			}
+		}
 
 		template <class _Der, class _Shell, class... _Types>
 		struct construct_func : enrollment
@@ -214,7 +240,7 @@ namespace luabind
 					lua_pushvalue(L, -2);					
 					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);					
 					lua_pushvalue(L, -5);
-					lua_pushcclosure(L, &func_holder::construct_entry, 3);
+					lua_pushcclosure(L, &construct_entry, 3);
 					lua_rawset(L, -6);
 				}
 				else
@@ -239,6 +265,185 @@ namespace luabind
 			val_type values;
 		};
 
+		inline void* get_adjusted_ptr(header* data, const class_info_data& info) noexcept
+		{
+			if (data->type == USERDATA_CLASS)
+			{
+				void* origin(nullptr);
+				switch (data->storage)
+				{
+				case STORAGE_LUA:
+					origin = (data + 1);
+					break;
+				case STORAGE_I_PTR:
+					origin = *(void**)(data + 1);
+					break;
+				case STORAGE_U_PTR:
+				case STORAGE_S_PTR:
+				case STORAGE_W_PTR:
+				default:
+					break;
+				}
+				if (origin)
+				{
+					if (info.type_id == data->type_id)
+					{
+						return origin;
+					}
+					else
+					{
+						auto it = info.base_map.find(data->type_id);
+						if (it != info.base_map.end())
+						{
+							return (char*)origin + it->second.first;
+						}
+					}
+				}
+			}
+			return nullptr;
+		}
+
+		struct member_func_holder
+		{
+			virtual ~member_func_holder() noexcept
+			{
+				if (next)
+				{
+					delete next;
+					next = nullptr;
+				}
+			}
+
+			virtual int call(lua_State* L, void* obj) noexcept = 0;
+
+			static int __gc(lua_State* L) noexcept
+			{
+				member_func_holder* h = *(member_func_holder**)lua_touserdata(L, 1);
+				delete h;
+				return 0;
+			}
+
+			static int entry(lua_State* L) noexcept
+			{				
+				if (lua_type(L, 1) == LUA_TUSERDATA)
+				{				
+					void* ptr = get_adjusted_ptr((header*)lua_touserdata(L, 1),
+						*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
+					if (ptr)
+					{
+						member_func_holder* h = *(member_func_holder**)lua_touserdata(L, lua_upvalueindex(2));
+						int ret = h->call(L, ptr);
+						if (ret < 0)
+						{
+							return luaL_error(L, "call c++ member function[%s:%s] with wrong params.",
+								lua_tostring(L, lua_upvalueindex(3)), lua_tostring(L, lua_upvalueindex(4)));
+						}
+						else
+						{
+							return ret;
+						}
+					}
+				}
+				return luaL_error(L, "call c++ member function[%s:%s] with invalid object.",
+					lua_tostring(L, lua_upvalueindex(3)), lua_tostring(L, lua_upvalueindex(4)));
+			}
+
+			member_func_holder* next = nullptr;
+		};
+
+		template <int base, class _Shell>
+		struct do_obj_invoke_normal
+		{
+			static int invoke(typename _Shell::_Class* o, typename _Shell::func_type f,
+				typename _Shell::val_type& v, lua_State* L, int top) noexcept
+			{
+				return type_traits<typename _Shell::ret_type>::push(L,
+					member_func_invoker<base, _Shell::default_start, _Shell>::invoke(
+						o, f, v, L, top));
+			}
+		};
+
+		template <int base, class _Shell>
+		struct do_obj_invoke_no_return
+		{
+			static int invoke(typename _Shell::_Class* o, typename _Shell::func_type f,
+				typename _Shell::val_type& v, lua_State* L, int top) noexcept
+			{
+				member_func_invoker<base, _Shell::default_start, _Shell>::invoke(
+					o, f, v, L, top);
+				return 0;
+			}
+		};
+
+		template <int base, class _Shell>
+		struct do_obj_invoke : std::conditional < std::is_same<typename _Shell::ret_type, void>::value,
+			do_obj_invoke_no_return<base, _Shell>, do_obj_invoke_normal <base, _Shell>> ::type
+		{
+
+		};
+
+		template <class _Shell>
+		struct member_func_holder_impl : member_func_holder
+		{
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
+
+			member_func_holder_impl(func_type f, const val_type& v) noexcept
+				: func(f), vals(v) {}
+
+			virtual int call(lua_State* L, void* obj) noexcept
+			{
+				int top = lua_gettop(L);
+				if (_Shell::test(L, top))
+				{
+					return do_obj_invoke<1, _Shell>::invoke((_Shell::_Class*)obj,
+						func, vals, L, top);
+				}
+				else if (next)
+				{
+					return next->call(L, obj);
+				}
+				else
+				{
+					return -1;
+				}
+			}			
+
+			func_type func;
+			val_type vals;
+		};
+
+		template <class... _Types>
+		struct manual_member_func : enrollment
+		{
+			typedef std::tuple<_Types...> holder;
+			static_assert(type_traits<holder>::can_push, "holder types wrong.");
+
+			manual_member_func(const char* n, lua_CFunction f, _Types... pak) noexcept
+				: name(n), func(f), upvalues(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				if (lua_rawgeti(L, -1, OBJ_FUNC) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -3, OBJ_FUNC);				
+				}
+				lua_pushstring(L, name);
+				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
+					type_traits<holder>::stack_count);
+				lua_pushcclosure(L, func, type_traits<holder>::stack_count);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			lua_CFunction func;
+			holder upvalues;
+		};
+
 		template <class _Shell, class... _Types>
 		struct member_func : enrollment
 		{
@@ -250,7 +455,63 @@ namespace luabind
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
-				//int top = lua_gettop(L);
+				LUABIND_HOLD_STACK(L);			
+				if (lua_rawgeti(L, -1, OBJ_FUNC_HOLDER) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -3, OBJ_FUNC_HOLDER);
+				}
+				lua_pushstring(L, name);
+				if (lua_rawget(L, -2) != LUA_TUSERDATA)
+				{
+					lua_pop(L, 1);
+					lua_pushlightuserdata(L, &class_info<_Shell::_Class>::info_data_map[get_main(L)]);
+					void* data = lua_newuserdata(L, sizeof(func_holder*));
+					*(member_func_holder**)data = new member_func_holder_impl<_Shell>(func, values);
+					lua_newtable(L);
+					lua_pushstring(L, "__gc");
+					lua_pushcfunction(L, &member_func_holder::__gc);
+					lua_rawset(L, -3);
+					lua_setmetatable(L, -2);
+					lua_pushstring(L, name);
+					lua_pushvalue(L, -2);
+					lua_rawset(L, -5);
+					
+					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
+					lua_pushstring(L, name);
+					lua_pushcclosure(L, &member_func_holder::entry, 4);
+
+					int top = lua_gettop(L);
+
+					if (lua_rawgeti(L, -3, OBJ_FUNC) != LUA_TTABLE)
+					{
+						lua_pop(L, 1);
+						lua_newtable(L);
+						lua_pushvalue(L, -1);
+						lua_rawseti(L, -5, OBJ_FUNC);
+					}
+					lua_pushstring(L, name);
+					lua_pushvalue(L, -3);
+					lua_rawset(L, -3);
+				}
+				else
+				{
+					member_func_holder* h = *(member_func_holder**)lua_touserdata(L, -1);
+					while (true)
+					{
+						if (h->next)
+						{
+							h = h->next;
+						}
+						else
+						{
+							h->next = new member_func_holder_impl<_Shell>(func, values);
+							break;
+						}
+					}
+				}
 			}
 
 			const char* name;
@@ -258,6 +519,94 @@ namespace luabind
 			val_type values;
 		};
 
+		static int obj_index(lua_State* L) noexcept
+		{
+			if (lua_getmetatable(L, 1))
+			{
+				if (lua_rawgeti(L, -1, OBJ_FUNC) == LUA_TTABLE)
+				{
+					lua_pushvalue(L, 2);
+					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+					{
+						return 1;
+					}
+				}
+				lua_settop(L, 3);
+				if (lua_rawgeti(L, -1, OBJ_READER) == LUA_TTABLE)
+				{
+					lua_pushvalue(L, 2);
+					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+					{
+						lua_pushvalue(L, 1);
+						if (lua_pcall(L, 1, 1, 0))
+						{
+							return luaL_error(L, lua_tostring(L, -1));
+						}
+						else
+						{
+							return 1;
+						}
+					}
+				}
+				lua_settop(L, 3);
+			}			
+			return 0;
+		}
+
+		template <class _Der, class... _Types>
+		struct manual_member_reader : enrollment
+		{
+			typedef std::tuple<_Types...> holder;
+			static_assert(type_traits<holder>::can_push, "holder types wrong.");
+
+			manual_member_reader(const char* n, lua_CFunction f, _Types... pak) noexcept
+				: name(n), func(f), upvalues(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);				
+				if (lua_rawgeti(L, -1, OBJ_READER) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -3, OBJ_READER);
+				}				
+				lua_pushstring(L, name);				
+				lua_pushlightuserdata(L, &class_info<_Der>::info_data_map[get_main(L)]);
+				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
+					type_traits<holder>::stack_count);
+				lua_pushcclosure(L, func, type_traits<holder>::stack_count + 1);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			lua_CFunction func;
+			holder upvalues;
+		};
+
+		template <class _Der, class _Type>
+		int value_member_reader(lua_State* L) noexcept
+		{
+			static_assert(type_traits<_Type>::can_push
+				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");		
+			if (lua_type(L, 1) == LUA_TUSERDATA)
+			{
+				_Der* obj = (_Der*)get_adjusted_ptr((header*)lua_touserdata(L, 1),
+					*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
+				if (obj)
+				{
+					union
+					{
+						_Type _Der::* v;
+						void* p;
+					};
+					p = lua_touserdata(L, lua_upvalueindex(2));
+					return type_traits<_Type>::push(L, obj->*v);
+				}
+			}
+			return 0;
+		}
 
 	}
 
@@ -287,12 +636,9 @@ namespace luabind
 			}
 		}
 	};
-
-	template <class _Class, class... _Types>
-	struct class_func_def;
 	
 	template <class _Class, class _Func, class... _Types>
-	struct class_func_def<_Class, _Func, _Types...>
+	struct class_func_def
 	{
 		static _Class& def(_Class& c, const char* name, _Func func, _Types... pak) noexcept
 		{
@@ -300,6 +646,24 @@ namespace luabind
 		}
 	};
 
+	template <class _Class, class _Val, class... _Types>
+	struct class_val_def
+	{
+		
+	};
+
+
+	template <class _Class, class... _Types>
+	struct class_member_def;
+
+	template <class _Class, class _Flag, class... _Types>
+	struct class_member_def<_Class, _Flag, _Types...> : std::conditional<
+		std::is_member_function_pointer<_Flag>::value,
+		class_func_def<_Class, _Flag, _Types...>,
+		class_val_def<_Class, _Flag, _Types...>>::type
+	{
+
+	};
 
 	template <class _Class, class _Constructor, class... _Types>
 	struct class_constructor_def
@@ -315,7 +679,7 @@ namespace luabind
 	template <class _Class, class _Flag, class... _Types>
 	struct class_def : std::conditional<
 		std::is_same<_Flag, const char*>::value,
-		class_func_def<_Class, _Types...>,
+		class_member_def<_Class, _Types...>,
 		class_constructor_def<_Class, _Flag, _Types...>>::type
 	{
 
@@ -396,7 +760,7 @@ namespace luabind
 				}
 			}
 			return 0;
-		}
+		}		
 
 		struct enrollment : detail::enrollment
 		{
@@ -408,9 +772,9 @@ namespace luabind
 				{
 					info->type_id = int(e.class_map.size());
 					e.class_map.push_back(info);
-					info->base_vec.clear();
-					base_finder<_Der, _Bases...>::find(e, info->base_vec);
-					LB_ASSERT(info->base_vec.size() == (sizeof...(_Bases)));
+					info->base_map.clear();
+					//base_finder<_Der, _Bases...>::find(e, info->base_vec);
+					//LB_ASSERT(info->base_vec.size() == (sizeof...(_Bases)));
 				}
 				return info;
 			}
@@ -487,6 +851,9 @@ namespace luabind
 					lua_pushstring(L, "__gc");
 					lua_pushcfunction(L, &__gc);
 					lua_rawset(L, -3);
+					lua_pushstring(L, "__index");
+					lua_pushcclosure(L, &detail::obj_index, 0);					
+					lua_rawset(L, -3);
 				}
 				member_scope.enroll(L);
 				lua_pop(L, 1);
@@ -538,5 +905,33 @@ namespace luabind
 			return *this;
 		}
 		
+		template <class... _Types>
+		class_& def_manual(const char* name, lua_CFunction func, _Types... pak) noexcept
+		{
+			((enrollment*)chain)->member_scope.operator,
+				(scope(new detail::manual_member_func<_Types...>(name, func, pak...)));
+			return *this;
+		}
+
+		template <class... _Types>
+		class_& def_manual_reader(const char* name, lua_CFunction func, _Types... pak) noexcept
+		{
+			((enrollment*)chain)->member_scope.operator,
+				(scope(new detail::manual_member_reader<_Der, _Types...>(name, func, pak...)));
+			return *this;
+		}
+
+		template <class _Type>
+		class_& def_readonly(const char* name, _Type _Der::* val) noexcept
+		{
+			union
+			{
+				_Type _Der::* v;
+				void* p;
+			};
+			v = val;
+			return def_manual_reader(name, &detail::value_member_reader<_Der, _Type>, p);
+		}
+
 	};
 }

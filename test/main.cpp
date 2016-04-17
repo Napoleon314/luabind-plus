@@ -215,6 +215,32 @@ std::unique_ptr<TestClass1> create(int a, int b) noexcept
 
 int Test1::val0 = 40;
 
+int test_manual_member(lua_State* L) noexcept
+{
+	return 0;
+}
+
+struct TestA
+{
+	int a1 = 5, a2 = 6;
+};
+
+struct TestB : virtual TestA
+{
+	int b1 = 7, b2 = 8;
+};
+
+struct TestC : virtual TestA
+{
+	int c1 = 9, c2 = 10;
+};
+
+struct TestD : TestB, TestC
+{
+	int d1 = 11, d2 = 12;
+};
+
+
 int main()
 {
 	using namespace std;
@@ -252,13 +278,28 @@ int main()
 			///	def_readwrite("val0", Test1::val0)
 			//],
 			class_<TestClass1>("TestClass1").
-			def("get_sum", &TestClass1::get_sum, 5).
+			def("get_sum", &TestClass1::get_sum).
+			def("get_sum", &TestClass1::get_sum, 35).
+			def_manual("test_manual", &test_manual_member, 1, 2, 3).
+			def_manual("test_manual2", &test_manual_member, 1, 2, 3).
+			def_readonly("a", &TestClass1::a).
+			def_readonly("b", &TestClass1::b).
 			def(constructor<int, int>()).
-			def(constructor<int>())[
+			def(constructor<int>(), 1)[
 				def_readwrite("val0", Test1::val0),
 				def("create", &create)
-			]
+			],
 
+
+			class_<TestA>("TestA").
+			def(constructor<>()).
+			def_readonly("a1", &TestA::a1).
+			def_readonly("a2", &TestA::a2),
+
+			class_<TestB, TestA>("TestA").
+			def(constructor<>()).
+			def_readonly("b1", &TestB::b1).
+			def_readonly("b2", &TestB::b2)
 			//def_manual_writer("test_reader", &writer)
 		];
 
@@ -308,7 +349,18 @@ int main()
 
 		auto ptr = type_traits<std::shared_ptr<TestClass1>>::get(L, -1);
 
-		
+		{
+			//TestClass1* obj = new TestClass1(7, 8);
+			//auto aaa = &TestClass1::get_sum;
+			//bool t = std::is_same<decltype(aaa), func_1>::value;
+			//func_1 = aaa;
+			//(obj->*aaa)();
+			//(((C*)pvSelf)->*pfuncCall)();
+			//auto a = member_func_invoke(obj, aaa);
+
+
+			//delete obj;
+		}
 		
 
 		//TestClass1& bbb = type_traits<TestClass1&>::get(L, -1);

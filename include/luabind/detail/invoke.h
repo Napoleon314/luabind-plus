@@ -186,4 +186,85 @@ namespace luabind
             return f(pak...);
         }
     };
+
+
+	template <int base, int idx, typename _Shell, class... _Types>
+	struct member_func_param_maker;
+
+	template <int base, int idx, typename _Shell, class... _Types>
+	struct member_func_param_maker_default;
+
+	template <class _Shell, class... _Types>
+	struct member_func_caller;
+
+	template <int base, int idx, class _Shell, class... _Types>
+	struct member_func_invoker : std::conditional < ((sizeof...(_Types)) == _Shell::params_count),
+		member_func_caller<_Shell, _Types...>, typename std::conditional <
+		((sizeof...(_Types)) < idx), member_func_param_maker <base, idx, _Shell, _Types...>,
+		member_func_param_maker_default <base, idx, _Shell, _Types... >> ::type> ::type
+	{
+
+	};
+
+	template <int base, int idx, typename _Shell, class... _Types>
+	struct member_func_param_maker
+	{
+		typedef typename std::tuple_element<(sizeof...(_Types)), typename _Shell::tuple>::type type;
+
+		static typename _Shell::ret_type invoke(typename _Shell::_Class* o,
+			typename _Shell::func_type f, typename _Shell::val_type& v,
+			lua_State* L, int top, _Types... pak) noexcept
+		{
+			if (top > base)
+			{
+				LB_ASSERT((base + type_traits<type>::stack_count) <= top);
+				return member_func_invoker<base + type_traits<type>::stack_count,
+					_Shell::default_start, _Shell, _Types..., type>::invoke(
+						o, f, v, L, top, pak..., type_traits<type>::get(L, base + 1));
+			}
+			else
+			{
+				return member_func_invoker<base + type_traits<type>::stack_count,
+					_Shell::default_start, _Shell, _Types..., type>::invoke(
+						o, f, v, L, top, pak..., type_traits<type>::make_default());
+			}
+		}
+	};
+
+	template <int base, int idx, typename _Shell, class... _Types>
+	struct member_func_param_maker_default
+	{
+		typedef typename std::tuple_element<(sizeof...(_Types)), typename _Shell::tuple>::type type;
+
+		static typename _Shell::ret_type invoke(typename _Shell::_Class* o,
+			typename _Shell::func_type f, typename _Shell::val_type& v,
+			lua_State* L, int top, _Types... pak) noexcept
+		{
+			if (top > base)
+			{
+				LB_ASSERT((base + type_traits<type>::stack_count) <= top);
+				return member_func_invoker<base + type_traits<type>::stack_count,
+					_Shell::default_start, _Shell, _Types..., type>::invoke(
+						o, f, v, L, top, pak..., type_traits<type>::get(L, base + 1));
+			}
+			else
+			{
+				return member_func_invoker<base + type_traits<type>::stack_count,
+					_Shell::default_start, _Shell, _Types..., type>::invoke(
+						o, f, v, L, top, pak..., std::get<sizeof...(_Types)-idx>(v));
+			}
+		}
+	};
+
+	template <class _Shell, class... _Types>
+	struct member_func_caller
+	{
+		static typename _Shell::ret_type invoke(typename _Shell::_Class* o,
+			typename _Shell::func_type f, typename _Shell::val_type& v,
+			lua_State* L, int top, _Types... pak) noexcept
+		{
+			return (o->*f)(pak...);
+		}
+	};
+
 }

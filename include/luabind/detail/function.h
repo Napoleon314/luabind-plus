@@ -174,23 +174,8 @@ namespace luabind
 			else
 			{
 				return ret;
-			}			
-		}
-
-		static int construct_entry(lua_State* L) noexcept
-		{
-			func_holder* h = *(func_holder**)lua_touserdata(L, lua_upvalueindex(1));
-			int ret = h->call(L);
-			if (ret < 0)
-			{
-				return luaL_error(L, "construct c++ class[%s] with wrong params.",
-					lua_tostring(L, lua_upvalueindex(2)));
 			}
-			else
-			{
-				return ret;
-			}
-		}
+		}		
 
 		func_holder* next = nullptr;
 	};

@@ -40,16 +40,7 @@ namespace luabind
 		SCOPE_ENUM,
 		SCOPE_CLASS,
 		SCOPE_MAX
-	};
-
-	enum inner_type
-	{
-		INNER_NOP,
-		INNER_READER,
-		INNER_WRITTER,
-		INNER_SUPPER,
-		INNER_MAX
-	};
+	};	
 
 	namespace detail
 	{
@@ -98,7 +89,7 @@ namespace luabind
 					}
 				}
 				return 0;
-			}			
+			}
 
 			static void getreader(lua_State* L) noexcept
 			{
@@ -109,9 +100,6 @@ namespace luabind
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -4, INDEX_READER);
 				}
-				//LB_ASSERT_EQ(lua_rawgeti(L, -3, INDEX_SCOPE), LUA_TNUMBER);
-				//auto scope_type = type_traits<SocpeType>::get(L, -1);
-				//lua_pop(L, 1);
 				if (!lua_getmetatable(L, -2))
 				{					
 					lua_newtable(L);			
@@ -573,7 +561,7 @@ namespace luabind
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 				lua_pushstring(L, "__index");
-				if (!lua_rawget(L, -2))
+				if (lua_rawget(L, -2) != LUA_TTABLE)
 				{
 					lua_pop(L, 1);
 					lua_pushinteger(L, SCOPE_NAMESPACE);
