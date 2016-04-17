@@ -55,6 +55,12 @@ namespace luabind
 		return sizeof...(_Types);
 	}
 
+	template <class _Der, class _Ret, class... _Types>
+	constexpr int count_func_params(_Ret(_Der::*)(_Types...)) noexcept
+	{
+		return sizeof...(_Types);
+	}
+
 	template <int stack_base, int param_idx, int idx, class... _Types>
 	struct func_tester;
 

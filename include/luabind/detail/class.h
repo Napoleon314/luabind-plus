@@ -61,7 +61,35 @@ namespace luabind
 		{
 			new(m) _Der(pak...);
 		}
-	}; 
+	};
+
+	template <int idx, class _Der, class _Ret, class... _Types>
+	struct member_func_shell
+	{
+		typedef _Ret(_Der::*func_type)(_Types...);
+		typedef typename params_trimmer<idx, _Types...>::type val_type;
+		typedef _Ret ret_type;
+		typedef std::tuple<_Types...> tuple;
+
+		static constexpr int params_count = sizeof...(_Types);
+		static constexpr int default_start = idx;
+
+		/*static bool test(lua_State* L, int top) noexcept
+		{
+		return func_tester<0, 0, idx, _Types...>::test(L, top);
+		}*/
+
+		member_func_shell(func_type f) noexcept : func(f) {}
+
+		func_type func;
+	};
+
+	template <int idx, class _Der, class _Ret, class... _Types>
+	member_func_shell<idx, _Der, _Ret, _Types...> create_member_func_shell(
+		_Ret(_Der::*func)(_Types...)) noexcept
+	{
+		return member_func_shell<idx, _Der, _Ret, _Types...>(func);
+	}
 
 	namespace detail
 	{
@@ -210,6 +238,27 @@ namespace luabind
 			func_type func;
 			val_type values;
 		};
+
+		template <class _Shell, class... _Types>
+		struct member_func : enrollment
+		{
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
+
+			member_func(const char* n, _Shell& f, _Types... pak) noexcept
+				: name(n), func(f.func), values(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				//int top = lua_gettop(L);
+			}
+
+			const char* name;
+			func_type func;
+			val_type values;
+		};
+
+
 	}
 
 	template<class _Der, class... _Bases>
@@ -239,10 +288,45 @@ namespace luabind
 		}
 	};
 
+	template <class _Class, class... _Types>
+	struct class_func_def;
+	
+	template <class _Class, class _Func, class... _Types>
+	struct class_func_def<_Class, _Func, _Types...>
+	{
+		static _Class& def(_Class& c, const char* name, _Func func, _Types... pak) noexcept
+		{
+			return c.def_func(name, func, pak...);
+		}
+	};
+
+
+	template <class _Class, class _Constructor, class... _Types>
+	struct class_constructor_def
+	{
+		static _Class& def(_Class& c, _Constructor, _Types... pak) noexcept
+		{
+			return c.def_constructor<typename _Constructor::func_type, _Types...>(
+				&(_Constructor::template default_constructor<typename _Class::_This>),
+				pak...);
+		}
+	};
+
+	template <class _Class, class _Flag, class... _Types>
+	struct class_def : std::conditional<
+		std::is_same<_Flag, const char*>::value,
+		class_func_def<_Class, _Types...>,
+		class_constructor_def<_Class, _Flag, _Types...>>::type
+	{
+
+	};
+
 	template<class _Der, class... _Bases>
 	class class_ : public scope
 	{
 	public:
+		typedef _Der _This;
+
 		static_assert(std::is_class<_Der>::value, "_Der need to be a class.");
 
 		static int __tostring(lua_State* L) noexcept
@@ -425,13 +509,12 @@ namespace luabind
 		{
 			((enrollment*)chain)->inner_scope.operator,(s);
 			return *this;
-		}
+		}		
 
-		template <class _Constructor, class... _Types>
-		class_& def(_Constructor, _Types... pak) noexcept
+		template <class... _Types>
+		class_& def(_Types... pak) noexcept
 		{
-			return def_constructor<typename _Constructor::func_type, _Types...>(
-				&(_Constructor::template default_constructor<_Der>), pak...);
+			return class_def<class_, _Types...>::def(*this, pak...);
 		}
 
 		template <class _Func, class... _Types>
@@ -441,6 +524,17 @@ namespace luabind
 				std::move(func));
 			((enrollment*)chain)->member_scope.operator,
 				(scope(new detail::construct_func<_Der, decltype(shell), _Types...>(shell, pak...)));
+			return *this;
+		}
+
+		template <class _Func, class... _Types>
+		class_& def_func(const char* name, _Func func, _Types... pak) noexcept
+		{
+			static_assert(std::is_member_function_pointer<_Func>::value,
+				"func has to be a member function.");
+			auto shell = create_member_func_shell<count_func_params((_Func)nullptr) - (sizeof...(_Types))>(func);
+			((enrollment*)chain)->member_scope.operator,
+				(scope(new detail::member_func<decltype(shell), _Types...>(name, shell, pak...)));
 			return *this;
 		}
 		

@@ -199,6 +199,11 @@ public:
 
 	}
 
+	int get_sum(int c) noexcept
+	{
+		return a + b + c;
+	}
+
 	int b = 0;
 
 };
@@ -247,8 +252,9 @@ int main()
 			///	def_readwrite("val0", Test1::val0)
 			//],
 			class_<TestClass1>("TestClass1").
+			def("get_sum", &TestClass1::get_sum, 5).
 			def(constructor<int, int>()).
-			def(constructor<int>(), 1)[
+			def(constructor<int>())[
 				def_readwrite("val0", Test1::val0),
 				def("create", &create)
 			]
