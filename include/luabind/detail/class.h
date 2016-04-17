@@ -306,7 +306,7 @@ namespace luabind
 	{
 		static _Class& def(_Class& c, _Constructor, _Types... pak) noexcept
 		{
-			return c.def_constructor<typename _Constructor::func_type, _Types...>(
+            return c._Class::template def_constructor<typename _Constructor::func_type, _Types...>(
 				&(_Constructor::template default_constructor<typename _Class::_This>),
 				pak...);
 		}
