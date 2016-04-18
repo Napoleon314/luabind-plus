@@ -593,9 +593,121 @@ namespace luabind
 					{
 						return 1;
 					}
+					else
+					{
+						return luaL_error(L, "can not find readable symbol %s in an instance of %s",
+							lua_tostring(L, 2), lua_tostring(L, lua_upvalueindex(1)));
+					}
 				}		
 			}			
+			return luaL_error(L, "wrong registered info in an instance of %s",
+				lua_tostring(L, lua_upvalueindex(1)));
+		}
+
+		inline int inherit_newindex(lua_State* L) noexcept
+		{
+			if (lua_rawgeti(L, -1, OBJ_WRITER) == LUA_TTABLE)
+			{
+				lua_pushvalue(L, 2);
+				if (lua_rawget(L, -2) == LUA_TFUNCTION)
+				{
+					lua_pushvalue(L, 1);
+					lua_pushvalue(L, 3);
+					if (lua_pcall(L, 2, 1, 0))
+					{
+						return luaL_error(L, lua_tostring(L, -1));
+					}
+					else
+					{
+						return 1;
+					}
+				}
+			}
+			lua_settop(L, 4);
+			if (lua_rawgeti(L, -1, OBJ_SUPER) == LUA_TTABLE)
+			{
+				size_t len = lua_rawlen(L, -1);
+				for (size_t i(0); i < len; ++i)
+				{
+					if (lua_rawgeti(L, -1, i + 1) == LUA_TTABLE)
+					{
+						if (lua_rawgeti(L, -1, OBJ_NEW_INDEX) == LUA_TFUNCTION)
+						{
+							lua_pushvalue(L, 1);
+							lua_pushvalue(L, 2);
+							lua_pushvalue(L, 3);
+							lua_pushvalue(L, 6);
+							if (lua_pcall(L, 4, 1, 0))
+							{
+								return luaL_error(L, lua_tostring(L, -1));
+							}
+
+							else if (lua_type(L, -1) > LUA_TNIL)
+							{
+								return 1;
+							}
+						}
+					}
+					lua_settop(L, 5);
+				}
+			}
 			return 0;
+		}
+
+		inline int obj_newindex(lua_State* L) noexcept
+		{
+			if (lua_getmetatable(L, 1))
+			{
+				if (lua_rawgeti(L, -1, OBJ_NEW_INDEX) == LUA_TFUNCTION)
+				{
+					lua_pushvalue(L, 1);
+					lua_pushvalue(L, 2);
+					lua_pushvalue(L, 3);
+					lua_pushvalue(L, 4);
+					if (lua_pcall(L, 4, 1, 0))
+					{
+						return luaL_error(L, lua_tostring(L, -1));
+					}
+					else if (lua_type(L, -1) == LUA_TNUMBER)
+					{
+						auto res = lua_tointeger(L, -1);
+						if (res == WRITER_SUCCEEDED)
+						{
+							return 0;
+						}
+						else
+						{
+							lua_getglobal(L, "tostring");
+							lua_pushvalue(L, 3);
+							lua_call(L, 1, 1);
+							switch (res)
+							{
+							case WRITER_TYPE_FAILED:
+								return luaL_error(L, "The type of %s is not suitable for symbol %s in an instance of %s.",
+									lua_tostring(L, -1), lua_tostring(L, 2), lua_tostring(L, lua_upvalueindex(1)));
+							case WRITER_VALUE_FAILED:
+								return luaL_error(L, "%s is not a valid value for symbol %s in an instance of %s.",
+									lua_tostring(L, -1), lua_tostring(L, 2), lua_tostring(L, lua_upvalueindex(1)));
+							default:
+								return luaL_error(L, "\"%s.%s = %s\" causing a unknown writer error.",
+									lua_tostring(L, lua_upvalueindex(1)), lua_tostring(L, 2), lua_tostring(L, -1));
+							}
+						}
+					}
+					else if (lua_type(L, -1) == LUA_TNIL)
+					{
+						return luaL_error(L, "can not find writable symbol %s in an instance of %s.",
+							lua_tostring(L, 2), lua_tostring(L, lua_upvalueindex(1)));
+					}
+					else
+					{
+						return luaL_error(L, "writer %s in an instance of %s is invalid.",
+							lua_tostring(L, 2), lua_tostring(L, lua_upvalueindex(1)));
+					}
+				}
+			}
+			return luaL_error(L, "wrong registered info in an instance of %s",
+				lua_tostring(L, lua_upvalueindex(1)));
 		}
 
 		template <class _Der, class... _Types>
@@ -666,6 +778,99 @@ namespace luabind
 			return 0;
 		}
 
+		template <class _Der, class... _Types>
+		struct manual_member_writer : enrollment
+		{
+			typedef std::tuple<_Types...> holder;
+			static_assert(type_traits<holder>::can_push, "holder types wrong.");
+
+			manual_member_writer(const char* n, lua_CFunction f, _Types... pak) noexcept
+				: name(n), func(f), upvalues(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				if (lua_rawgeti(L, -1, OBJ_WRITER) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -3, OBJ_WRITER);
+				}
+				lua_pushstring(L, name);
+				lua_pushlightuserdata(L, &class_info<_Der>::info_data_map[get_main(L)]);
+				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
+					type_traits<holder>::stack_count);
+				lua_pushcclosure(L, func, type_traits<holder>::stack_count + 1);
+				lua_rawset(L, -3);
+			}
+
+			const char* name;
+			lua_CFunction func;
+			holder upvalues;
+		};
+
+		template <class _Der, class _Type>
+		int value_member_writer(lua_State* L) noexcept
+		{
+			static_assert(type_traits<_Type>::can_get
+				&& type_traits<_Type>::stack_count == 1, "wrong type for writer.");
+			if (lua_type(L, 1) == LUA_TUSERDATA)
+			{
+				_Der* obj = (_Der*)get_adjusted_ptr((header*)lua_touserdata(L, 1),
+					*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
+				if (obj)
+				{
+					if (type_traits<_Type>::test(L, -1))
+					{
+						auto v = type_traits<_Type _Der::*>::get(L, lua_upvalueindex(2));
+						(obj->*v) = type_traits<_Type>::get(L, -1);
+						lua_pushinteger(L, WRITER_SUCCEEDED);
+					}
+					else
+					{
+						lua_pushinteger(L, WRITER_TYPE_FAILED);
+					}
+					return 1;
+				}
+			}
+			lua_pushinteger(L, WRITER_UNKNOWN_FIALED);
+			return 1;
+		}
+
+		template <class _Der, class _Type>
+		int member_writer(lua_State* L) noexcept
+		{
+			static_assert(type_traits<_Type>::can_get
+				&& type_traits<_Type>::stack_count == 1, "wrong type for writer.");
+			if (lua_type(L, 1) == LUA_TUSERDATA)
+			{
+				_Der* obj = (_Der*)get_adjusted_ptr((header*)lua_touserdata(L, 1),
+					*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
+				if (obj)
+				{
+					if (type_traits<_Type>::test(L, -1))
+					{
+						auto f = type_traits<bool(_Der::*)(_Type)>::get(L, lua_upvalueindex(2));
+						if ((obj->*f)(type_traits<_Type>::get(L, -1)))
+						{
+							lua_pushinteger(L, WRITER_SUCCEEDED);
+						}
+						else
+						{
+							lua_pushinteger(L, WRITER_VALUE_FAILED);
+						}
+					}
+					else
+					{
+						lua_pushinteger(L, WRITER_TYPE_FAILED);
+					}
+					return 1;
+				}
+			}
+			lua_pushinteger(L, WRITER_UNKNOWN_FIALED);
+			return 1;
+		}
 	}
 
 	template<class _Der, class... _Bases>
@@ -771,7 +976,8 @@ namespace luabind
 	public:
 		typedef _Der _This;
 
-		static_assert(std::is_class<_Der>::value, "_Der need to be a class.");
+		static_assert(std::is_class<_Der>::value && (!std::is_const<_Der>::value),
+			"_Der need to be a class.");
 
 		static int __tostring(lua_State* L) noexcept
 		{
@@ -932,11 +1138,20 @@ namespace luabind
 					lua_rawset(L, -3);
 
 					lua_pushstring(L, "__index");
-					lua_pushcclosure(L, &detail::obj_index, 0);
+					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);					
+					lua_pushcclosure(L, &detail::obj_index, 1);
+					lua_rawset(L, -3);
+
+					lua_pushstring(L, "__newindex");
+					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
+					lua_pushcclosure(L, &detail::obj_newindex, 1);
 					lua_rawset(L, -3);
 
 					lua_pushcclosure(L, &detail::inherit_index, 0);
 					lua_rawseti(L, -2, OBJ_INDEX);
+
+					lua_pushcclosure(L, &detail::inherit_newindex, 0);
+					lua_rawseti(L, -2, OBJ_NEW_INDEX);
 					
 					if (sizeof...(_Bases))
 					{
@@ -1023,5 +1238,26 @@ namespace luabind
 		{
 			return def_manual_reader(name, &detail::member_reader<_Der, _Type>, func);
 		}
+
+		template <class... _Types>
+		class_& def_manual_writer(const char* name, lua_CFunction func, _Types... pak) noexcept
+		{
+			((enrollment*)chain)->member_scope.operator,
+				(scope(new detail::manual_member_writer<_Der, _Types...>(name, func, pak...)));
+			return *this;
+		}
+
+		template <class _Type>
+		class_& def_writeonly(const char* name, _Type _Der::* val) noexcept
+		{
+			return def_manual_writer(name, &detail::value_member_writer<_Der, _Type>, val);
+		}
+
+		template <class _Type>
+		class_& def_writer(const char* name, bool(_Der::*func)(_Type)) noexcept
+		{
+			return def_manual_writer(name, &detail::member_writer<_Der, _Type>, func);
+		}
+
 	};
 }

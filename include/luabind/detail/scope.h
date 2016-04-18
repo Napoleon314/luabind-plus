@@ -40,7 +40,16 @@ namespace luabind
 		SCOPE_ENUM,
 		SCOPE_CLASS,
 		SCOPE_MAX
-	};	
+	};
+
+	enum writer_result
+	{
+		WRITER_SUCCEEDED,
+		WRITER_TYPE_FAILED,
+		WRITER_FUNC_FAILED,
+		WRITER_VALUE_FAILED,
+		WRITER_UNKNOWN_FIALED
+	};
 
 	namespace detail
 	{
@@ -258,8 +267,16 @@ namespace luabind
 		{
 			static_assert(type_traits<_Type>::can_get
 				&& type_traits<_Type>::stack_count == 1, "wrong type for writer.");
-			*(_Type*)lua_touserdata(L, lua_upvalueindex(1)) = type_traits<_Type>::get(L, -1);
-			return 0;
+			if (type_traits<_Type>::test(L, -1))
+			{
+				*(_Type*)lua_touserdata(L, lua_upvalueindex(1)) = type_traits<_Type>::get(L, -1);
+				lua_pushinteger(L, WRITER_SUCCEEDED);
+			}
+			else
+			{
+				lua_pushinteger(L, WRITER_TYPE_FAILED);
+			}
+			return 1;
 		}
 
 		template <class _Type>
@@ -268,7 +285,7 @@ namespace luabind
 			static_assert(type_traits<_Type>::can_get
 				&& type_traits<_Type>::stack_count == 1, "wrong type for writer.");
 
-			typedef std::function<void(_Type)> func_type;
+			typedef std::function<bool(_Type)> func_type;
 
 			static int __gc(lua_State* L) noexcept
 			{
@@ -279,9 +296,23 @@ namespace luabind
 
 			static int writer(lua_State* L) noexcept
 			{
-				func_type& func = *(func_type*)lua_touserdata(L, lua_upvalueindex(1));
-				func(type_traits<_Type>::get(L, -1));
-				return 0;
+				if (type_traits<_Type>::test(L, -1))
+				{
+					func_type& func = *(func_type*)lua_touserdata(L, lua_upvalueindex(1));
+					if (func(type_traits<_Type>::get(L, -1)))
+					{
+						lua_pushinteger(L, WRITER_SUCCEEDED);
+					}
+					else
+					{
+						lua_pushinteger(L, WRITER_VALUE_FAILED);
+					}
+				}
+				else
+				{
+					lua_pushinteger(L, WRITER_TYPE_FAILED);
+				}				
+				return 1;
 			}
 
 			func_writer(const char* n, func_type&& f) noexcept
@@ -505,13 +536,81 @@ namespace luabind
 					if (lua_rawget(L, -2) == LUA_TFUNCTION)
 					{
 						lua_pushvalue(L, 3);
-						if (lua_pcall(L, 1, 0, 0))
+						if (lua_pcall(L, 1, 1, 0))
 						{
 							return luaL_error(L, lua_tostring(L, -1));
 						}
+						else if(lua_type(L, -1) == LUA_TNUMBER)
+						{
+							auto res = lua_tointeger(L, -1);
+							if (res == WRITER_SUCCEEDED)
+							{
+								return 0;
+							}
+							else if(res == WRITER_TYPE_FAILED)
+							{
+								lua_getglobal(L, "tostring");
+								lua_pushvalue(L, 3);
+								lua_call(L, 1, 1);
+								const char* s = lua_tostring(L, -1);
+								const char* scope_name = lua_tostring(L, lua_upvalueindex(2));
+								const char* name = lua_tostring(L, 2);
+								if (*scope_name)
+								{
+									return luaL_error(L, "The type of \"%s\" is not suitable for \"%s.%s\".", s, scope_name, name);
+								}
+								else
+								{
+									return luaL_error(L, "The type of \"%s\" is not suitable for \"%s\".", s, name);
+								}
+							}
+							else if (res == WRITER_VALUE_FAILED)
+							{
+								lua_getglobal(L, "tostring");
+								lua_pushvalue(L, 3);
+								lua_call(L, 1, 1);
+								const char* s = lua_tostring(L, -1);
+								const char* scope_name = lua_tostring(L, lua_upvalueindex(2));
+								const char* name = lua_tostring(L, 2);
+								if (*scope_name)
+								{
+									return luaL_error(L, "\"%s\" is not a valid value for \"%s.%s\".", s, scope_name, name);
+								}
+								else
+								{
+									return luaL_error(L, "\"%s\" is not a valid value for \"%s\".", s, name);
+								}
+							}
+							else
+							{
+								lua_getglobal(L, "tostring");
+								lua_pushvalue(L, 3);
+								lua_call(L, 1, 1);
+								const char* s = lua_tostring(L, -1);
+								const char* scope_name = lua_tostring(L, lua_upvalueindex(2));
+								const char* name = lua_tostring(L, 2);
+								if (*scope_name)
+								{
+									return luaL_error(L, "\"%s.%s = %s\" causing a unknown writer error.", scope_name, name, s);
+								}
+								else
+								{
+									return luaL_error(L, "\"%s = %s\" causing a unknown writer error.", name, s);
+								}
+							}
+						}
 						else
 						{
-							return 0;
+							const char* scope_name = lua_tostring(L, lua_upvalueindex(2));
+							const char* name = lua_tostring(L, 2);
+							if (*scope_name)
+							{
+								return luaL_error(L, "writer of \"%s.%s\" is invalid.", scope_name, name);
+							}
+							else
+							{
+								return luaL_error(L, "writer of \"%s\" is invalid.", name);
+							}
 						}
 					}
 				}
@@ -741,7 +840,7 @@ namespace luabind
 	}
 
 	template <class _Type>
-	scope def_writer(const char* name, std::function<void(_Type)> func) noexcept
+	scope def_writer(const char* name, std::function<bool(_Type)> func) noexcept
 	{
 		return scope(new detail::func_writer<_Type>(name, std::move(func)));
 	}

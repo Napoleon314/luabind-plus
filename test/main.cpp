@@ -244,6 +244,10 @@ struct TestD : TestA, TestB, TestC
 		return d1 + d2;
 	}
 
+	bool setp(int p)
+	{
+		return true;
+	}
 };
 
 
@@ -279,6 +283,7 @@ int main()
 			def_writer<int>("test_reader2", [&](int val) noexcept
 			{
 				test_reader2 = val;
+				return true;
 			}),
 
 			class_<Test1>("Test1").
@@ -312,13 +317,16 @@ int main()
 			def(constructor<>()).
 			def("inc", &TestC::inc).
 			def_readonly("c1", &TestC::c1).
-			def_readonly("c2", &TestC::c2),
+			def_readonly("c2", &TestC::c2).
+			def_writeonly("c1", &TestC::c1),
 
 			class_<TestD, TestA, TestB, TestC>("TestD").
 			def(constructor<>()).
 			def_readonly("d1", &TestD::d1).
 			def_readonly("d2", &TestD::d2).
-			def_reader("p1", &TestD::p1)
+			def_reader("p1", &TestD::p1).
+			def_writeonly("d1", &TestD::d1).
+			def_writer("p1", &TestD::setp)
 
 			//def_manual_writer("test_reader", &writer)
 		];

@@ -45,3 +45,8 @@ print("b1,b2", obj.b1, obj.b2)
 print("c1,c2", obj.c1, obj.c2)
 print("d1,d2", obj.d1, obj.d2)
 print("p1", obj.p1)
+--print(luabind.TestD.ddd)
+obj.d1 = 9
+obj.c1 = 15
+print(obj.d1, obj.c1)
+obj.p1 = 99
