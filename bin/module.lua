@@ -44,4 +44,4 @@ print("a1,a2", obj.a1, obj.a2)
 print("b1,b2", obj.b1, obj.b2)
 print("c1,c2", obj.c1, obj.c2)
 print("d1,d2", obj.d1, obj.d2)
-
+print("p1", obj.p1)

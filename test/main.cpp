@@ -238,6 +238,12 @@ struct TestC : virtual vtd::ref_obj
 struct TestD : TestA, TestB, TestC
 {
 	int d1 = 11, d2 = 12;
+
+	int p1()
+	{
+		return d1 + d2;
+	}
+
 };
 
 
@@ -283,7 +289,6 @@ int main()
 			def("get_sum", &TestClass1::get_sum, 35).
 			def_manual("test_manual", &test_manual_member, 1, 2, 3).
 			def_manual("test_manual2", &test_manual_member, 1, 2, 3).
-			
 			def_readonly("b", &TestClass1::b).
 			def(constructor<int, int>()).
 			def(constructor<int>(), 1)[
@@ -312,7 +317,8 @@ int main()
 			class_<TestD, TestA, TestB, TestC>("TestD").
 			def(constructor<>()).
 			def_readonly("d1", &TestD::d1).
-			def_readonly("d2", &TestD::d2)
+			def_readonly("d2", &TestD::d2).
+			def_reader("p1", &TestD::p1)
 
 			//def_manual_writer("test_reader", &writer)
 		];

@@ -311,6 +311,96 @@ namespace luabind
 		}
 	};
 
+	template <class _Der, class _Type>
+	struct type_traits<_Type _Der::*>
+	{
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			if (lua_type(L, idx) == LUA_TSTRING)
+			{
+				size_t len;
+				lua_tolstring(L, idx, &len);
+				return len = sizeof(_Type _Der::*);
+			}
+			return false;
+		}
+
+		static _Type _Der::* get(lua_State* L, int idx) noexcept
+		{
+			union
+			{
+				_Type _Der::* v;
+				char str[sizeof(_Type _Der::*)];
+			};
+			memcpy(str, lua_tostring(L, idx), sizeof(_Type _Der::*));
+			return v;
+		}
+
+		static int push(lua_State* L, _Type _Der::* val) noexcept
+		{
+			union
+			{
+				_Type _Der::* v;
+				char str[sizeof(_Type _Der::*)];
+			};
+			v = val;
+			lua_pushlstring(L, str, sizeof(_Type _Der::*));
+			return 1;
+		}
+	};
+
+	template <class _Der, class _Type>
+	struct type_traits<_Type (_Der::*)()>
+	{
+		typedef _Type(_Der::*func_type)();
+
+		static constexpr bool can_get = true;
+
+		static constexpr bool can_push = true;
+
+		static constexpr int stack_count = 1;
+
+		static bool test(lua_State* L, int idx) noexcept
+		{
+			if (lua_type(L, idx) == LUA_TSTRING)
+			{
+				size_t len;
+				lua_tolstring(L, idx, &len);
+				return len = sizeof(func_type);
+			}
+			return false;
+		}
+
+		static func_type get(lua_State* L, int idx) noexcept
+		{
+			union
+			{
+				func_type f;
+				char str[sizeof(func_type)];
+			};
+			memcpy(str, lua_tostring(L, idx), sizeof(func_type));
+			return f;
+		}
+
+		static int push(lua_State* L, func_type func) noexcept
+		{
+			union
+			{
+				func_type f;
+				char str[sizeof(func_type)];
+			};
+			f = func;
+			lua_pushlstring(L, str, sizeof(func_type));
+			return 1;
+		}
+	};
+
 	template <>
 	struct type_traits<lua_CFunction>
 	{

@@ -641,13 +641,26 @@ namespace luabind
 					*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
 				if (obj)
 				{
-					union
-					{
-						_Type _Der::* v;
-						void* p;
-					};
-					p = lua_touserdata(L, lua_upvalueindex(2));
+					auto v = type_traits<_Type _Der::*>::get(L, lua_upvalueindex(2));
 					return type_traits<_Type>::push(L, obj->*v);
+				}
+			}
+			return 0;
+		}
+
+		template <class _Der, class _Type>
+		int member_reader(lua_State* L) noexcept
+		{
+			static_assert(type_traits<_Type>::can_push
+				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");
+			if (lua_type(L, 1) == LUA_TUSERDATA)
+			{
+				_Der* obj = (_Der*)get_adjusted_ptr((header*)lua_touserdata(L, 1),
+					*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
+				if (obj)
+				{
+					auto f = type_traits<_Type(_Der::*)()>::get(L, lua_upvalueindex(2));				
+					return type_traits<_Type>::push(L, (obj->*f)());
 				}
 			}
 			return 0;
@@ -1002,14 +1015,13 @@ namespace luabind
 		template <class _Type>
 		class_& def_readonly(const char* name, _Type _Der::* val) noexcept
 		{
-			union
-			{
-				_Type _Der::* v;
-				void* p;
-			};
-			v = val;
-			return def_manual_reader(name, &detail::value_member_reader<_Der, _Type>, p);
+			return def_manual_reader(name, &detail::value_member_reader<_Der, _Type>, val);
 		}
 
+		template <class _Type>
+		class_& def_reader(const char* name, _Type(_Der::*func)()) noexcept
+		{
+			return def_manual_reader(name, &detail::member_reader<_Der, _Type>, func);
+		}
 	};
 }

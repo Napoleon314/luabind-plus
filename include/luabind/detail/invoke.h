@@ -123,7 +123,7 @@ namespace luabind
 	template <int base, int idx, class _Shell, class... _Types>
 	struct func_invoker : std::conditional < ((sizeof...(_Types)) == _Shell::params_count),
 		func_caller<_Shell, _Types...>, typename std::conditional <
-		((sizeof...(_Types)) < idx), func_param_maker <base, idx, _Shell, _Types...>,
+		((sizeof...(_Types)) < (size_t)idx), func_param_maker <base, idx, _Shell, _Types...>,
 		func_param_maker_default <base, idx, _Shell, _Types... >> ::type> ::type
 	{
 
@@ -200,7 +200,7 @@ namespace luabind
 	template <int base, int idx, class _Shell, class... _Types>
 	struct member_func_invoker : std::conditional < ((sizeof...(_Types)) == _Shell::params_count),
 		member_func_caller<_Shell, _Types...>, typename std::conditional <
-		((sizeof...(_Types)) < idx), member_func_param_maker <base, idx, _Shell, _Types...>,
+		((sizeof...(_Types)) < (size_t)idx), member_func_param_maker <base, idx, _Shell, _Types...>,
 		member_func_param_maker_default <base, idx, _Shell, _Types... >> ::type> ::type
 	{
 
