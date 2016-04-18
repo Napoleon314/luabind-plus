@@ -274,8 +274,10 @@ int main()
 			{
 				test_reader2 = val;
 			}),
+
 			class_<Test1>("Test1").
             def_readonly("a", &Test1::a),
+
 			class_<TestClass1, Test1>("TestClass1").
 			def("get_sum", &TestClass1::get_sum).
 			def("get_sum", &TestClass1::get_sum, 35).
@@ -289,19 +291,21 @@ int main()
 				def("create", &create)
 			],
 
-
 			class_<TestA>("TestA").
 			def(constructor<>()).
+			def("inc", &TestA::inc).
 			def_readonly("a1", &TestA::a1).
 			def_readonly("a2", &TestA::a2),
 
 			class_<TestB>("TestB").
 			def(constructor<>()).
+			def("inc", &TestB::inc).
 			def_readonly("b1", &TestB::b1).
 			def_readonly("b2", &TestB::b2),
 
 			class_<TestC>("TestC").
 			def(constructor<>()).
+			def("inc", &TestC::inc).
 			def_readonly("c1", &TestC::c1).
 			def_readonly("c2", &TestC::c2),
 
