@@ -937,6 +937,40 @@ namespace luabind
 		
 	};
 
+	template <class _Class, class _Der, class _Type>
+	struct class_val_helper_normal
+	{
+		static _Class& def(_Class& c, const char* name, _Type _Der::* val) noexcept
+		{			
+			return c.def_readonly(name, val).def_writeonly(name, val);
+		}
+	};
+
+	template <class _Class, class _Der, class _Type>
+	struct class_val_helper_const
+	{
+		static _Class& def(_Class& c, const char* name, _Type _Der::* val) noexcept
+		{
+			return c.def_readonly(name, val);
+		}
+	};
+
+	template <class _Class, class _Der, class _Type>
+	struct class_val_helper : std::conditional<std::is_const<_Type>::value,
+		class_val_helper_const<_Class, _Der, _Type>,
+		class_val_helper_normal<_Class, _Der, _Type>>::type
+	{
+
+	};	
+
+	template <class _Class, class _Der, class _Type>
+	struct class_val_def<_Class, _Type _Der::*>
+	{
+		static _Class& def(_Class& c, const char* name, _Type _Der::* val) noexcept
+		{
+			return class_val_helper<_Class, _Der, _Type>::def(c, name, val);
+		}
+	};
 
 	template <class _Class, class... _Types>
 	struct class_member_def;

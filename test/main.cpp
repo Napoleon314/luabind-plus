@@ -223,6 +223,7 @@ int test_manual_member(lua_State* L) noexcept
 struct TestA : virtual vtd::ref_obj
 {
 	int a1 = 5, a2 = 6;
+	const int a3 = 7;
 };
 
 struct TestB : virtual vtd::ref_obj
@@ -304,8 +305,9 @@ int main()
 			class_<TestA>("TestA").
 			def(constructor<>()).
 			def("inc", &TestA::inc).
-			def_readonly("a1", &TestA::a1).
-			def_readonly("a2", &TestA::a2),
+			def("a1", &TestA::a1).
+			def("a2", &TestA::a2).
+			def("a3", &TestA::a3),
 
 			class_<TestB>("TestB").
 			def(constructor<>()).

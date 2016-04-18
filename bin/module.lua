@@ -40,7 +40,9 @@ print(luabind.test_reader3)
 --print(obj)
 
 obj = luabind.TestD()
-print("a1,a2", obj.a1, obj.a2)
+obj.a1 = 88
+obj.a2 = 99
+print("a1,a2,a3", obj.a1, obj.a2, obj.a3)
 print("b1,b2", obj.b1, obj.b2)
 print("c1,c2", obj.c1, obj.c2)
 print("d1,d2", obj.d1, obj.d2)
