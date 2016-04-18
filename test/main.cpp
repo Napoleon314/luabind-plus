@@ -274,15 +274,14 @@ int main()
 			{
 				test_reader2 = val;
 			}),
-			//class_<Test1>("Test1")[
-			///	def_readwrite("val0", Test1::val0)
-			//],
-			class_<TestClass1>("TestClass1").
+			class_<Test1>("Test1").
+            def_readonly("a", &Test1::a),
+			class_<TestClass1, Test1>("TestClass1").
 			def("get_sum", &TestClass1::get_sum).
 			def("get_sum", &TestClass1::get_sum, 35).
 			def_manual("test_manual", &test_manual_member, 1, 2, 3).
 			def_manual("test_manual2", &test_manual_member, 1, 2, 3).
-			def_readonly("a", &TestClass1::a).
+			
 			def_readonly("b", &TestClass1::b).
 			def(constructor<int, int>()).
 			def(constructor<int>(), 1)[

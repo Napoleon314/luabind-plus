@@ -79,7 +79,7 @@ namespace luabind
 	template <int idx, class _Der, class _Ret, class... _Types>
 	struct member_func_shell
 	{
-		typedef typename _Der _Class;
+		typedef _Der _Class;
 		typedef _Ret(_Der::*func_type)(_Types...);
 		typedef typename params_trimmer<idx, _Types...>::type val_type;
 		typedef _Ret ret_type;
@@ -398,7 +398,7 @@ namespace luabind
 				int top = lua_gettop(L);
 				if (_Shell::test(L, top))
 				{
-					return do_obj_invoke<1, _Shell>::invoke((_Shell::_Class*)obj,
+					return do_obj_invoke<1, _Shell>::invoke((typename _Shell::_Class*)obj,
 						func, vals, L, top);
 				}
 				else if (next)
@@ -469,7 +469,7 @@ namespace luabind
 				if (lua_rawget(L, -2) != LUA_TUSERDATA)
 				{
 					lua_pop(L, 1);
-					lua_pushlightuserdata(L, &class_info<_Shell::_Class>::info_data_map[get_main(L)]);
+					lua_pushlightuserdata(L, &class_info<typename _Shell::_Class>::info_data_map[get_main(L)]);
 					void* data = lua_newuserdata(L, sizeof(func_holder*));
 					*(member_func_holder**)data = new member_func_holder_impl<_Shell>(func, values);
 					lua_newtable(L);
@@ -484,8 +484,6 @@ namespace luabind
 					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
 					lua_pushstring(L, name);
 					lua_pushcclosure(L, &member_func_holder::entry, 4);
-
-					int top = lua_gettop(L);
 
 					if (lua_rawgeti(L, -3, OBJ_FUNC) != LUA_TTABLE)
 					{
@@ -521,7 +519,7 @@ namespace luabind
 			val_type values;
 		};
 
-		static int inherit_index(lua_State* L) noexcept
+		inline int inherit_index(lua_State* L) noexcept
 		{
 			if (lua_rawgeti(L, -1, OBJ_FUNC) == LUA_TTABLE)
 			{
@@ -578,7 +576,7 @@ namespace luabind
 			return 0;
 		}
 
-		static int obj_index(lua_State* L) noexcept
+        inline int obj_index(lua_State* L) noexcept
 		{
 			if (lua_getmetatable(L, 1))
 			{
