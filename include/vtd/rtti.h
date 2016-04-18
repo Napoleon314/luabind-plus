@@ -97,7 +97,7 @@ namespace vtd
 
 			template <class _Base, class _Der>
 			static inline size_type offset() noexcept
-			{
+			{				
 				return (size_type)(void*)static_cast<_Base*>(((_Der*)1)) - 1;
 			}
 

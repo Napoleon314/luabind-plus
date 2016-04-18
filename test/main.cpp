@@ -220,22 +220,22 @@ int test_manual_member(lua_State* L) noexcept
 	return 0;
 }
 
-struct TestA
+struct TestA : virtual vtd::ref_obj
 {
 	int a1 = 5, a2 = 6;
 };
 
-struct TestB : virtual TestA
+struct TestB : virtual vtd::ref_obj
 {
 	int b1 = 7, b2 = 8;
 };
 
-struct TestC : virtual TestA
+struct TestC : virtual vtd::ref_obj
 {
 	int c1 = 9, c2 = 10;
 };
 
-struct TestD : TestB, TestC
+struct TestD : TestA, TestB, TestC
 {
 	int d1 = 11, d2 = 12;
 };
@@ -296,10 +296,21 @@ int main()
 			def_readonly("a1", &TestA::a1).
 			def_readonly("a2", &TestA::a2),
 
-			class_<TestB, TestA>("TestA").
+			class_<TestB>("TestB").
 			def(constructor<>()).
 			def_readonly("b1", &TestB::b1).
-			def_readonly("b2", &TestB::b2)
+			def_readonly("b2", &TestB::b2),
+
+			class_<TestC>("TestC").
+			def(constructor<>()).
+			def_readonly("c1", &TestC::c1).
+			def_readonly("c2", &TestC::c2),
+
+			class_<TestD, TestA, TestB, TestC>("TestD").
+			def(constructor<>()).
+			def_readonly("d1", &TestD::d1).
+			def_readonly("d2", &TestD::d2)
+
 			//def_manual_writer("test_reader", &writer)
 		];
 

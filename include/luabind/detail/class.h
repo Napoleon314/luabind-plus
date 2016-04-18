@@ -54,6 +54,8 @@ namespace luabind
 	enum obj_inner_index
 	{
 		OBJ_NOP,
+		OBJ_INDEX,
+		OBJ_NEW_INDEX,
 		OBJ_FUNC_HOLDER,
 		OBJ_FUNC,		
 		OBJ_READER,
@@ -292,8 +294,8 @@ namespace luabind
 					}
 					else
 					{
-						auto it = info.base_map.find(data->type_id);
-						if (it != info.base_map.end())
+						auto it = info.sub_map.find(data->type_id);
+						if (it != info.sub_map.end())
 						{
 							return (char*)origin + it->second.first;
 						}
@@ -519,36 +521,81 @@ namespace luabind
 			val_type values;
 		};
 
-		static int obj_index(lua_State* L) noexcept
+		static int inherit_index(lua_State* L) noexcept
 		{
-			if (lua_getmetatable(L, 1))
+			if (lua_rawgeti(L, -1, OBJ_FUNC) == LUA_TTABLE)
 			{
-				if (lua_rawgeti(L, -1, OBJ_FUNC) == LUA_TTABLE)
+				lua_pushvalue(L, 2);
+				if (lua_rawget(L, -2) == LUA_TFUNCTION)
 				{
-					lua_pushvalue(L, 2);
-					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+					return 1;
+				}
+			}
+			lua_settop(L, 3);
+			if (lua_rawgeti(L, -1, OBJ_READER) == LUA_TTABLE)
+			{
+				lua_pushvalue(L, 2);
+				if (lua_rawget(L, -2) == LUA_TFUNCTION)
+				{
+					lua_pushvalue(L, 1);
+					if (lua_pcall(L, 1, 1, 0))
+					{
+						return luaL_error(L, lua_tostring(L, -1));
+					}
+					else
 					{
 						return 1;
 					}
 				}
-				lua_settop(L, 3);
-				if (lua_rawgeti(L, -1, OBJ_READER) == LUA_TTABLE)
+			}
+			lua_settop(L, 3);
+			if (lua_rawgeti(L, -1, OBJ_SUPER) == LUA_TTABLE)
+			{
+				size_t len = lua_rawlen(L, -1);
+				for (size_t i(0); i < len; ++i)
 				{
-					lua_pushvalue(L, 2);
-					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+					if (lua_rawgeti(L, -1, i + 1) == LUA_TTABLE)
 					{
-						lua_pushvalue(L, 1);
-						if (lua_pcall(L, 1, 1, 0))
+						if (lua_rawgeti(L, -1, OBJ_INDEX) == LUA_TFUNCTION)
 						{
-							return luaL_error(L, lua_tostring(L, -1));
-						}
-						else
-						{
-							return 1;
+							lua_pushvalue(L, 1);
+							lua_pushvalue(L, 2);
+							lua_pushvalue(L, 5);
+							if (lua_pcall(L, 3, 1, 0))
+							{
+								return luaL_error(L, lua_tostring(L, -1));
+							}
+							
+							else if (lua_type(L, -1) > LUA_TNIL)
+							{
+								return 1;
+							}
 						}
 					}
-				}
-				lua_settop(L, 3);
+					lua_settop(L, 4);
+				}				
+			}
+			return 0;
+		}
+
+		static int obj_index(lua_State* L) noexcept
+		{
+			if (lua_getmetatable(L, 1))
+			{
+				if (lua_rawgeti(L, -1, OBJ_INDEX) == LUA_TFUNCTION)
+				{
+					lua_pushvalue(L, 1);
+					lua_pushvalue(L, 2);
+					lua_pushvalue(L, 3);
+					if (lua_pcall(L, 3, 1, 0))
+					{
+						return luaL_error(L, lua_tostring(L, -1));
+					}
+					else if (lua_type(L, -1) > LUA_TNIL)
+					{
+						return 1;
+					}
+				}		
 			}			
 			return 0;
 		}
@@ -571,7 +618,7 @@ namespace luabind
 					lua_newtable(L);
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -3, OBJ_READER);
-				}				
+				}
 				lua_pushstring(L, name);				
 				lua_pushlightuserdata(L, &class_info<_Der>::info_data_map[get_main(L)]);
 				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
@@ -616,7 +663,12 @@ namespace luabind
 	template<class _Der>
 	struct base_finder<_Der>
 	{
-		static void find(env& e, std::vector<std::pair<ptrdiff_t, detail::class_info_data*>>& vec) noexcept
+		static void find(env& e) noexcept
+		{
+
+		}
+
+		static void fill(lua_State* L) noexcept
 		{
 
 		}
@@ -625,15 +677,32 @@ namespace luabind
 	template<class _Der, class _This, class... _Rest>
 	struct base_finder<_Der, _This, _Rest...>
 	{
-		static void find(env& e, std::vector<std::pair<ptrdiff_t, detail::class_info_data*>>& vec) noexcept
+		static void find(env& e) noexcept
 		{
 			detail::class_info_data* info = &(detail::class_info<_Der>::info_data_map[e.L]);
-			if (info->type_id && info->class_id)
+			detail::class_info_data* super_info = &(detail::class_info<_This>::info_data_map[e.L]);
+			ptrdiff_t diff = vtd::rtti::base::offset<_This, _Der>();
+			info->base_map[super_info->type_id] = std::make_pair(diff, super_info);
+			for (auto base : super_info->base_map)
 			{
-				ptrdiff_t diff = vtd::rtti::base::offset<_This, _Der>();
-				vec.push_back(std::make_pair(diff, info));
-				base_finder<_Der, _Rest...>::find(e, vec);
+				info->base_map[base.first] = std::make_pair(
+					base.second.first + diff, base.second.second);
 			}
+			super_info->sub_map[info->type_id] = std::make_pair(diff, super_info);
+			base_finder<_Der, _Rest...>::find(e);
+		}
+
+		static void fill(lua_State* L) noexcept
+		{
+			auto len = lua_rawlen(L, -1);			
+			detail::class_info_data* super_info = &(detail::class_info<_This>::info_data_map[get_main(L)]);
+			LB_ASSERT(super_info->class_id);
+			lua_rawgeti(L, LUA_REGISTRYINDEX, super_info->class_id);
+			LB_ASSERT_EQ(lua_getmetatable(L, -1), 1);
+			LB_ASSERT_EQ(lua_rawgeti(L, -1, INDEX_CLASS), LUA_TTABLE);			
+			lua_rawseti(L, -4, len + 1);
+			lua_pop(L, 2);			
+			base_finder<_Der, _Rest...>::fill(L);
 		}
 	};
 	
@@ -773,8 +842,7 @@ namespace luabind
 					info->type_id = int(e.class_map.size());
 					e.class_map.push_back(info);
 					info->base_map.clear();
-					//base_finder<_Der, _Bases...>::find(e, info->base_vec);
-					//LB_ASSERT(info->base_vec.size() == (sizeof...(_Bases)));
+					base_finder<_Der, _Bases...>::find(e);
 				}
 				return info;
 			}
@@ -851,9 +919,21 @@ namespace luabind
 					lua_pushstring(L, "__gc");
 					lua_pushcfunction(L, &__gc);
 					lua_rawset(L, -3);
+
 					lua_pushstring(L, "__index");
-					lua_pushcclosure(L, &detail::obj_index, 0);					
+					lua_pushcclosure(L, &detail::obj_index, 0);
 					lua_rawset(L, -3);
+
+					lua_pushcclosure(L, &detail::inherit_index, 0);
+					lua_rawseti(L, -2, OBJ_INDEX);
+					
+					if (sizeof...(_Bases))
+					{
+						lua_newtable(L);
+						base_finder<_Der, _Bases...>::fill(L);
+						LB_ASSERT(lua_rawlen(L, -1) == sizeof...(_Bases));
+						lua_rawseti(L, -2, OBJ_SUPER);					
+					}
 				}
 				member_scope.enroll(L);
 				lua_pop(L, 1);

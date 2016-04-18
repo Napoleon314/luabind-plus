@@ -40,9 +40,12 @@ namespace luabind
 	{
 		struct class_info_data
 		{
+			typedef std::unordered_map<int, std::pair<ptrdiff_t, class_info_data*>> map;
+
 			int type_id = 0;
 			int class_id = 0;
-			std::unordered_map<int, std::pair<ptrdiff_t, class_info_data*>> base_map;
+			map base_map;
+			map sub_map;
 		};
 
 		template<class _Type>
