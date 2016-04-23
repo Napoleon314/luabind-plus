@@ -31,7 +31,6 @@
 #pragma once
 
 #include <memory>
-#include <vtd/rtti.h>
 
 namespace luabind
 {
@@ -961,7 +960,7 @@ namespace luabind
 		class_val_helper_normal<_Class, _Der, _Type>>::type
 	{
 
-	};	
+	};
 
 	template <class _Class, class _Der, class _Type>
 	struct class_val_def<_Class, _Type _Der::*>
