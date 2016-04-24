@@ -168,8 +168,9 @@ namespace luabind
 
 		static _Ty get(lua_State* L, int idx) noexcept
 		{
-			_Ty* ptr = detail::get_obj<_Ty>(L, idx);
-			return ptr ? (*ptr) : type_traits<_Ty>::make_default();
+			auto obj = (detail::userdata_obj<_Ty, STORAGE_LUA>*)lua_touserdata(L, idx);
+			LB_ASSERT(obj->info.storage == STORAGE_LUA);
+			return obj->data;	
 		}
 
 		static int push(lua_State* L, _Ty val) noexcept
@@ -609,14 +610,12 @@ namespace luabind
 
 		static bool test(lua_State* L, int idx) noexcept
 		{
-			return detail::test_obj<_Ty, STORAGE_I_PTR>(L, idx);
+			return detail::test_i_ptr<_Ty>(L, idx);
 		}
 
 		static vtd::intrusive_ptr<_Ty> get(lua_State* L, int idx) noexcept
 		{
-			auto obj = (detail::userdata_obj<_Ty, STORAGE_I_PTR>*)lua_touserdata(L, idx);
-			LB_ASSERT(obj->info.storage == STORAGE_I_PTR);
-			return obj->data;
+			return detail::get_obj<_Ty>(L, idx);
 		}
 
 		static int push(lua_State* L, vtd::intrusive_ptr<_Ty> val) noexcept

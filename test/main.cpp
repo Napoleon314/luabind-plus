@@ -251,6 +251,13 @@ struct TestD : TestA, TestB, TestC
 	}
 };
 
+void TestCovert(TestA a1, vtd::intrusive_ptr<TestA> a2, std::shared_ptr<TestA> a3) noexcept
+{
+
+}
+
+int test_val = 15;
+const int test_val2 = 16;
 
 int main()
 {
@@ -271,7 +278,10 @@ int main()
 		];
 
 		module(L, "luabind")[
+			def("test_val", test_val),
+			def("test_val2", test_val2),
 			def_manual("print", &lua_print, 1, 2),
+			def("TestCovert", &TestCovert),
 			def("add", &add),
 			def("add", &add, 1),
 			def("add", &add, 2, 3),

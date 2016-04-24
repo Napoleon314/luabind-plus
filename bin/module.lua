@@ -1,5 +1,11 @@
-obj = luabind.TestClass1.new_s(88, 99)
-print("obj", obj, obj.b)
+--obj = luabind.TestClass1.new_s(88, 99)
+--print("obj", obj, obj.b)
+
+a1 = luabind.TestA()
+a2 = luabind.TestD.new()
+a3 = luabind.TestA.new_s()
+
+luabind.TestCovert(a1, a2, a3)
 
 luabind.TestClass1.val0 = 78
 print(luabind.TestClass1, luabind.TestClass1.val0)

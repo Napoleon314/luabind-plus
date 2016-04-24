@@ -806,6 +806,18 @@ namespace luabind
 		return def(name, std::function<_Func>(func), pak...);
 	}
 
+	template <class _Val>
+	scope def(const char* name, _Val& val) noexcept
+	{
+		return def_readonly(name, val), def_writeonly(name, val);
+	}
+
+	template <class _Val>
+	scope def(const char* name, const _Val& val) noexcept
+	{
+		return def_readonly(name, val);
+	}
+
 	template <class _Type>
 	scope def_const(const char* name, _Type val) noexcept
 	{
