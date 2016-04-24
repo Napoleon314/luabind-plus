@@ -31,6 +31,7 @@
 #pragma once
 
 #include <memory>
+#include <vtd/rtti.h>
 
 namespace luabind
 {
@@ -66,12 +67,16 @@ namespace luabind
 	template <class... _Types>
 	struct constructor
 	{
-		typedef void func_type(void*, _Types...);
-
 		template <class _Der>
-		static void default_constructor(void* m, _Types... pak) noexcept
+		static void default_construct_func(void* m, _Types... pak) noexcept
 		{
 			new(m) _Der(pak...);
+		}
+
+		template <class _Der>
+		static _Der* default_new_func(_Types... pak) noexcept
+		{
+			return new _Der(pak...);
 		}
 	};
 
@@ -266,6 +271,161 @@ namespace luabind
 			val_type values;
 		};
 
+		template <class _Der, class _Shell>
+		struct new_holder : func_holder
+		{
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
+
+			static_assert(std::is_same<typename _Shell::ret_type, _Der*>::value,
+				"wrong new function.");
+
+			new_holder(const func_type& f, const val_type& v) noexcept
+				: func(f), vals(v) {}
+
+			virtual ~new_holder() noexcept
+			{
+
+			}
+
+			virtual int call(lua_State* L) noexcept
+			{
+				int top = lua_gettop(L);
+				if (_Shell::test(L, top))
+				{
+					_Der* p = func_invoker<0, _Shell::default_start, _Shell>::invoke(
+						func, vals, L, top);
+					if (p)
+					{
+						storage_type eType = (storage_type)lua_tointeger(L, lua_upvalueindex(3));
+						switch (eType)
+						{
+						case STORAGE_I_PTR:
+							return object_traits<_Der*>::push(L, p);
+						case STORAGE_U_PTR:
+							return object_traits<std::unique_ptr<_Der>>::push(L, std::unique_ptr<_Der>(p));
+						case STORAGE_S_PTR:
+							return object_traits<std::shared_ptr<_Der>>::push(L, std::shared_ptr<_Der>(p));
+						default:
+							break;
+						}
+					}
+					return 0;
+				}
+				else if (next)
+				{
+					return next->call(L);
+				}
+				else
+				{
+					return -1;
+				}
+			}
+
+			func_type func;
+			val_type vals;
+		};
+
+		inline int new_entry(lua_State* L) noexcept
+		{
+			func_holder* h = *(func_holder**)lua_touserdata(L, lua_upvalueindex(1));
+			int ret = h->call(L);
+			if (ret < 0)
+			{
+				return luaL_error(L, "new c++ class[%s] with wrong params.",
+					lua_tostring(L, lua_upvalueindex(2)));
+			}
+			else
+			{
+				return ret;
+			}
+		}
+
+		template <class _Der, class _Shell, class... _Types>
+		struct new_func : enrollment
+		{
+			typedef typename _Shell::func_type func_type;
+			typedef typename _Shell::val_type val_type;
+
+			new_func(_Shell& f, _Types... pak) noexcept
+				: func(std::move(f.func)), values(pak...) {}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_HOLD_STACK(L);
+				if (lua_rawgeti(L, -3, INDEX_FUNC) != LUA_TTABLE)
+				{
+					lua_pop(L, 1);
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
+					lua_rawseti(L, -5, INDEX_FUNC);
+				}
+				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);				
+				lua_pushstring(L, "new");
+				if (lua_rawget(L, -2) != LUA_TUSERDATA)
+				{
+					lua_pop(L, 1);					
+					void* data = lua_newuserdata(L, sizeof(func_holder*));
+					*(func_holder**)data = new new_holder<_Der, _Shell>(func, values);
+					lua_newtable(L);
+					lua_pushstring(L, "__gc");
+					lua_pushcfunction(L, &func_holder::__gc);
+					lua_rawset(L, -3);
+					lua_setmetatable(L, -2);
+					lua_pushstring(L, "new");
+					lua_pushvalue(L, -2);
+					lua_rawset(L, -4);					
+
+					lua_pushstring(L, "new");
+					lua_pushvalue(L, -2);
+					lua_rawgeti(L, -7, INDEX_SCOPE_NAME);
+					lua_pushinteger(L, STORAGE_I_PTR);
+					lua_pushcclosure(L, &new_entry, 3);					
+					lua_rawset(L, -6);
+
+					lua_pushstring(L, "new_i");
+					lua_pushvalue(L, -2);
+					lua_rawgeti(L, -7, INDEX_SCOPE_NAME);
+					lua_pushinteger(L, STORAGE_I_PTR);
+					lua_pushcclosure(L, &new_entry, 3);
+					lua_rawset(L, -6);
+
+					lua_pushstring(L, "new_u");
+					lua_pushvalue(L, -2);
+					lua_rawgeti(L, -7, INDEX_SCOPE_NAME);
+					lua_pushinteger(L, STORAGE_U_PTR);
+					lua_pushcclosure(L, &new_entry, 3);
+					lua_rawset(L, -6);
+
+					lua_pushstring(L, "new_s");
+					lua_pushvalue(L, -2);
+					lua_rawgeti(L, -7, INDEX_SCOPE_NAME);
+					lua_pushinteger(L, STORAGE_S_PTR);
+					lua_pushcclosure(L, &new_entry, 3);
+					lua_rawset(L, -6);
+				}
+				else
+				{
+					func_holder* h = *(func_holder**)lua_touserdata(L, -1);
+					while (true)
+					{
+						if (h->next)
+						{
+							h = h->next;
+						}
+						else
+						{
+							h->next = new new_holder<_Der, _Shell>(func, values);
+							break;
+						}
+					}
+				}
+			}
+
+			func_type func;
+			val_type values;
+		};
+
 		inline void* get_adjusted_ptr(header* data, const class_info_data& info) noexcept
 		{
 			if (data->type == USERDATA_CLASS)
@@ -280,8 +440,17 @@ namespace luabind
 					origin = *(void**)(data + 1);
 					break;
 				case STORAGE_U_PTR:
+					origin = ((std::unique_ptr<void>*)(data + 1))->get();
+					break;
 				case STORAGE_S_PTR:
+					origin = ((std::shared_ptr<void>*)(data + 1))->get();
+					break;
 				case STORAGE_W_PTR:
+					if (!(((std::weak_ptr<void>*)(data + 1))->expired()))
+					{
+						origin = ((std::weak_ptr<void>*)(data + 1))->lock().get();
+					}					
+					break;
 				default:
 					break;
 				}
@@ -988,9 +1157,11 @@ namespace luabind
 	{
 		static _Class& def(_Class& c, _Constructor, _Types... pak) noexcept
 		{
-            return c._Class::template def_constructor<typename _Constructor::func_type, _Types...>(
-				&(_Constructor::template default_constructor<typename _Class::_This>),
-				pak...);
+			return c._Class::template def_constructor<
+				decltype(_Constructor::template default_construct_func<typename _Class::_This>), _Types...>(
+				&(_Constructor::template default_construct_func<typename _Class::_This>), pak...).
+				_Class::template def_new<decltype(_Constructor::template default_new_func<typename _Class::_This>), _Types...>(
+					&(_Constructor::template default_new_func<typename _Class::_This>), pak...);
 		}
 	};
 
@@ -1215,7 +1386,7 @@ namespace luabind
 		{
 			((enrollment*)chain)->inner_scope.operator,(s);
 			return *this;
-		}		
+		}
 
 		template <class... _Types>
 		class_& def(_Types... pak) noexcept
@@ -1230,6 +1401,16 @@ namespace luabind
 				std::move(func));
 			((enrollment*)chain)->member_scope.operator,
 				(scope(new detail::construct_func<_Der, decltype(shell), _Types...>(shell, pak...)));
+			return *this;
+		}
+
+		template <class _Func, class... _Types>
+		class_& def_new(std::function<_Func> func, _Types... pak) noexcept
+		{
+			auto shell = create_func_shell<count_func_params((_Func*)nullptr) - (sizeof...(_Types))>(
+				std::move(func));
+			((enrollment*)chain)->member_scope.operator,
+				(scope(new detail::new_func<_Der, decltype(shell), _Types...>(shell, pak...)));
 			return *this;
 		}
 

@@ -1,3 +1,6 @@
+obj = luabind.TestClass1.new_s(88, 99)
+print("obj", obj, obj.b)
+
 luabind.TestClass1.val0 = 78
 print(luabind.TestClass1, luabind.TestClass1.val0)
 --luabind.TestClass1.a = 5

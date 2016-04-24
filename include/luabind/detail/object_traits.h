@@ -45,17 +45,10 @@ namespace luabind
 					auto it = detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.find(get_main(L));
 					if (it != detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.end())
 					{
-						if (info->type_id == it->second.type_id)
+						if (info->type_id == it->second.type_id
+							|| (it->second.sub_map.find(info->type_id) != it->second.sub_map.end()))
 						{
-							switch (info->storage)
-							{
-							case STORAGE_U_PTR:
-								return (*(std::unique_ptr<_Ty>*)(info + 1)) != nullptr;
-							case STORAGE_W_PTR:
-								return !((*(std::weak_ptr<_Ty>*)(info + 1)).expired());
-							default:
-								return true;
-							}
+							return true;
 						}
 					}
 				}
@@ -85,7 +78,29 @@ namespace luabind
 		}
 
 		template <class _Ty>
-		bool test_ptr(lua_State* L, int idx) noexcept
+		bool test_i_ptr(lua_State* L, int idx) noexcept
+		{
+			if (lua_type(L, idx) == LUA_TUSERDATA)
+			{
+				detail::header* info = (detail::header*)lua_touserdata(L, idx);
+				if (info->type == USERDATA_CLASS && info->storage == STORAGE_I_PTR)
+				{
+					auto it = detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.find(get_main(L));
+					if (it != detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.end())
+					{
+						if (info->type_id == it->second.type_id
+							|| (it->second.sub_map.find(info->type_id) != it->second.sub_map.end()))
+						{
+							return true;
+						}
+					}
+				}
+			}
+			return false;
+		}
+
+		template <class _Ty>
+		bool test_s_ptr(lua_State* L, int idx) noexcept
 		{
 			if (lua_type(L, idx) == LUA_TUSERDATA)
 			{
@@ -107,25 +122,14 @@ namespace luabind
 		}
 
 		template <class _Ty>
-		_Ty& get_obj(lua_State* L, int idx) noexcept
+		_Ty* get_obj(lua_State* L, int idx) noexcept
 		{
-			detail::header* info = (detail::header*)lua_touserdata(L, idx);
-			switch (info->storage)
+			auto it = detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.find(get_main(L));
+			if (it != detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.end())
 			{
-			case STORAGE_LUA:
-				return *(_Ty*)(info + 1);
-			case STORAGE_I_PTR:
-				return **(_Ty**)(info + 1);
-			case STORAGE_U_PTR:
-				return **(std::unique_ptr<_Ty>*)(info + 1);
-			case STORAGE_S_PTR:
-				return **(std::shared_ptr<_Ty>*)(info + 1);
-			case STORAGE_W_PTR:
-				return *(*(std::weak_ptr<_Ty>*)(info + 1)).lock();
-			default:
-				break;
-			}
-			return *(_Ty*)nullptr;
+				return (_Ty*)get_adjusted_ptr((detail::header*)lua_touserdata(L, idx), it->second);
+			}			
+			return nullptr;
 		}		
 
 		template <class _Ty, storage_type s>
@@ -164,7 +168,8 @@ namespace luabind
 
 		static _Ty get(lua_State* L, int idx) noexcept
 		{
-			return detail::get_obj<_Ty>(L, idx);
+			_Ty* ptr = detail::get_obj<_Ty>(L, idx);
+			return ptr ? (*ptr) : type_traits<_Ty>::make_default();
 		}
 
 		static int push(lua_State* L, _Ty val) noexcept
@@ -198,7 +203,7 @@ namespace luabind
 
 		static _Ty& get(lua_State* L, int idx) noexcept
 		{
-			return detail::get_obj<_Ty>(L, idx);
+			return *detail::get_obj<_Ty>(L, idx);
 		}
 
 		static int push(lua_State* L, _Ty& val) noexcept
@@ -246,19 +251,17 @@ namespace luabind
 
 		static bool test(lua_State* L, int idx) noexcept
 		{
-			return detail::test_obj<_Ty, STORAGE_I_PTR>(L, idx);
+			return detail::test_i_ptr<_Ty>(L, idx);
 		}
 
 		static _Ty* get(lua_State* L, int idx) noexcept
 		{
-			auto obj = (detail::userdata_obj<_Ty, STORAGE_I_PTR>*)lua_touserdata(L, idx);
-			LB_ASSERT(obj->info.storage == STORAGE_I_PTR);
-			return obj->data;
+			return detail::get_obj<_Ty>(L, idx);
 		}
 
 		static int push(lua_State* L, _Ty* val) noexcept
 		{
-			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);			
+			auto obj = detail::push_obj<_Ty, STORAGE_I_PTR>(L);
 			obj->data = val;
 			vtd::intrusive_obj<_Ty>::inc(obj->data);
 			return 1;
@@ -382,7 +385,7 @@ namespace luabind
 
 		static bool test(lua_State* L, int idx) noexcept
 		{
-			return detail::test_ptr<_Ty>(L, idx);
+			return detail::test_s_ptr<_Ty>(L, idx);
 		}
 
 		static std::shared_ptr<_Ty> get(lua_State* L, int idx) noexcept
@@ -494,7 +497,7 @@ namespace luabind
 
 		static bool test(lua_State* L, int idx) noexcept
 		{
-			return detail::test_ptr<_Ty>(L, idx);
+			return detail::test_s_ptr<_Ty>(L, idx);
 		}
 
 		static std::weak_ptr<_Ty> get(lua_State* L, int idx) noexcept
