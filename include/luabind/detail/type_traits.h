@@ -32,6 +32,7 @@
 
 #include <type_traits>
 #include <tuple>
+#include <string.h>
 
 namespace luabind
 {
