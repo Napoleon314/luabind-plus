@@ -251,7 +251,7 @@ struct TestD : TestA, TestB, TestC
 	}
 };
 
-void TestCovert(TestA a1, vtd::intrusive_ptr<TestA> a2, std::shared_ptr<TestA> a3) noexcept
+void TestConvert(TestA a1, vtd::intrusive_ptr<TestA> a2, std::shared_ptr<TestA> a3) noexcept
 {
 
 }
@@ -281,7 +281,7 @@ int main()
 			def("test_val", test_val),
 			def("test_val2", test_val2),
 			def_manual("print", &lua_print, 1, 2),
-			def("TestCovert", &TestCovert),
+			def("TestConvert", &TestConvert),
 			def("add", &add),
 			def("add", &add, 1),
 			def("add", &add, 2, 3),

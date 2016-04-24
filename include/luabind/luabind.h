@@ -69,6 +69,7 @@
 #include "detail/scope.h"
 #include "detail/class.h"
 #include "detail/object_traits.h"
+#include "detail/enum.h"
 
 namespace luabind
 {
