@@ -791,33 +791,6 @@ namespace luabind
 		return scope(new detail::manual_writer<_Types...>(name, func, pak...));
 	}
 
-	template <class _Func, class... _Types>
-	scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
-	{
-		auto shell = create_func_shell<count_func_params((_Func*)nullptr)-(sizeof...(_Types))>(
-			std::move(func));
-		return scope(new detail::cpp_func<decltype(shell), _Types...>(name, shell, pak...));
-	}
-
-	template <class _Func, class... _Types>
-	scope def(const char* name, _Func* func, _Types... pak) noexcept
-	{
-		static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
-		return def(name, std::function<_Func>(func), pak...);
-	}
-
-	template <class _Val>
-	scope def(const char* name, _Val& val) noexcept
-	{
-		return def_readonly(name, val), def_writeonly(name, val);
-	}
-
-	template <class _Val>
-	scope def(const char* name, const _Val& val) noexcept
-	{
-		return def_readonly(name, val);
-	}
-
 	template <class _Type>
 	scope def_const(const char* name, _Type val) noexcept
 	{
@@ -869,4 +842,31 @@ namespace luabind
 	{		
 		return def_writeonly(name, val), def_readonly(name, val);
 	}
+    
+    template <class _Func, class... _Types>
+    scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
+    {
+        auto shell = create_func_shell<count_func_params((_Func*)nullptr)-(sizeof...(_Types))>(
+                                                                                               std::move(func));
+        return scope(new detail::cpp_func<decltype(shell), _Types...>(name, shell, pak...));
+    }
+    
+    template <class _Func, class... _Types>
+    scope def(const char* name, _Func* func, _Types... pak) noexcept
+    {
+        static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
+        return def(name, std::function<_Func>(func), pak...);
+    }
+    
+    template <class _Val>
+    scope def(const char* name, _Val& val) noexcept
+    {
+        return def_readonly(name, val), def_writeonly(name, val);
+    }
+    
+    template <class _Val>
+    scope def(const char* name, const _Val& val) noexcept
+    {
+        return def_readonly(name, val);
+    }
 }
