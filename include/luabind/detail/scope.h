@@ -151,6 +151,7 @@ namespace luabind
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
+				LUABIND_CHECK_STACK(L);
 				lua_pushstring(L, name);
 				LB_ASSERT_EQ(type_traits<_Type>::push(L, value), 1);
 				lua_rawset(L, -3);

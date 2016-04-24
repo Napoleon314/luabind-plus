@@ -259,6 +259,13 @@ void TestConvert(TestA a1, vtd::intrusive_ptr<TestA> a2, std::shared_ptr<TestA> 
 int test_val = 15;
 const int test_val2 = 16;
 
+enum EnumTest
+{
+	ENUM_1,
+	ENUM_2,
+	ENUM_3
+};
+
 int main()
 {
 	using namespace std;
@@ -338,8 +345,12 @@ int main()
 			def_readonly("d2", &TestD::d2).
 			def_reader("p1", &TestD::p1).
 			def_writeonly("d1", &TestD::d1).
-			def_writer("p1", &TestD::setp)
+			def_writer("p1", &TestD::setp),
 
+			enum_("EnumTest").
+			def("ENUM_1", ENUM_1, "e1").
+			def("ENUM_2", ENUM_2, "e2").
+			def("ENUM_3", ENUM_3, "e3")
 			//def_manual_writer("test_reader", &writer)
 		];
 

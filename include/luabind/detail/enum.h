@@ -50,6 +50,36 @@ namespace luabind
 			return luaL_error(L, "can not modify c++ enum[%s].", name);
 		}
 
+		struct value : detail::enrollment
+		{
+			value(const char* i, const char* o, int v) noexcept
+				: inner(i), outer(o), val(v)
+			{
+				if (!inner) inner = outer;
+			}
+
+			virtual void enroll(lua_State* L) const noexcept
+			{
+				LUABIND_CHECK_STACK(L);			
+				if (outer)
+				{
+					lua_pushstring(L, outer);
+					lua_pushinteger(L, val);
+					lua_rawset(L, -6);
+				}
+				if (inner)
+				{
+					lua_pushstring(L, inner);
+					lua_pushinteger(L, val);
+					lua_rawset(L, -3);
+				}
+			}
+
+			const char* inner;
+			const char* outer;
+			int val;
+		};
+
 		struct enrollment : detail::enrollment
 		{
 			enrollment(const char* n) noexcept
@@ -92,7 +122,7 @@ namespace luabind
 #				ifndef NDEBUG
 				lua_rawgeti(L, -2, INDEX_SCOPE);
 				LB_ASSERT(lua_type(L, -1) == LUA_TNUMBER
-					&& lua_tointeger(L, -1) == SCOPE_NAMESPACE);
+					&& lua_tointeger(L, -1) == SCOPE_ENUM);
 				lua_pop(L, 1);
 #				endif
 			}
@@ -122,13 +152,18 @@ namespace luabind
 			scope inner_scope;
 		};
 
-
-
 		explicit enum_(const char* name) noexcept
 			: scope(new enrollment(name))
 		{
 
 		}
+
+		enum_& def(const char* outer, int val, const char* inner = nullptr) noexcept
+		{
+			((enrollment*)chain)->inner_scope.operator,
+				(scope(new value(inner, outer, val)));
+			return *this;
+		}
+
 	};
 }
-

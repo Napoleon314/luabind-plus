@@ -1,6 +1,10 @@
 --obj = luabind.TestClass1.new_s(88, 99)
 --print("obj", obj, obj.b)
 
+print(luabind.EnumTest)
+print(luabind.ENUM_1, luabind.ENUM_2, luabind.ENUM_3)
+print(luabind.EnumTest.e1, luabind.EnumTest.e2, luabind.EnumTest.e3)
+
 a1 = luabind.TestA()
 a2 = luabind.TestD.new()
 a3 = luabind.TestA.new_s()
