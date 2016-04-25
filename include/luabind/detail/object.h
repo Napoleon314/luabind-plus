@@ -73,7 +73,7 @@ namespace luabind
 
 		lua_State* get_lua() noexcept
 		{
-			return parent->L;
+			return parent ? parent->L : nullptr;
 		}
 
 		int push(lua_State* L) const
@@ -417,6 +417,7 @@ namespace luabind
 			}
 		}
 
+#		if (LUA_VERSION_NUM >= 502)
 		size_t rawlen() const noexcept
 		{
 			if (parent && parent->L && handle)
@@ -427,6 +428,7 @@ namespace luabind
 			}
 			return 0;
 		}
+#		endif
 
 		void foreach(std::function<void(lua_State* L)> func) noexcept
 		{
@@ -504,14 +506,20 @@ namespace luabind
 	inline object globals(lua_State* L) noexcept
 	{
 		LUABIND_HOLD_STACK(L);
+#		if (LUA_VERSION_NUM >= 502)
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+#		else
+		lua_pushvalue(L, LUA_GLOBALSINDEX);
+#		endif
 		return object(L, -1);
 	}
 
+#	if (LUA_VERSION_NUM >= 502)
 	inline object mainthread(lua_State* L) noexcept
 	{
 		LUABIND_HOLD_STACK(L);
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 		return object(L, -1);
 	}
+#	endif
 }

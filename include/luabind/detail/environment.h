@@ -33,6 +33,12 @@
 #include <vector>
 #include <unordered_map>
 #include <vtd/intrusive_ptr.h>
+#if (LUA_VERSION_NUM < 502)
+extern "C"
+{
+#	include <lstate.h>
+}
+#endif
 
 namespace luabind
 {
@@ -95,17 +101,25 @@ namespace luabind
 
 	inline lua_State* get_main(lua_State* L) noexcept
 	{
+#		if (LUA_VERSION_NUM >= 502)
 		LUABIND_HOLD_STACK(L);
 		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
 		LB_ASSERT(lua_type(L, -1) == LUA_TTHREAD);
 		return lua_tothread(L, -1);
+#		else
+		return L->l_G->mainthread;
+#		endif
 	}
 
 	inline env* get_env(lua_State* L) noexcept
 	{
 		L = get_main(L);
 		LUABIND_HOLD_STACK(L);
+#		if (LUA_VERSION_NUM >= 502)
 		lua_pushglobaltable(L);
+#		else
+		lua_pushvalue(L, LUA_GLOBALSINDEX);
+#		endif
 		if (lua_getmetatable(L, -1))
 		{
 			lua_rawgeti(L, -1, INDEX_MAX);

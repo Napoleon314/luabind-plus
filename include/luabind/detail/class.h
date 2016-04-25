@@ -777,7 +777,15 @@ namespace luabind
 			if (lua_type(L, -1) == LUA_TTABLE)
 #			endif
 			{
-				size_t len = lua_rawlen(L, -1);
+				size_t len;
+#				if (LUA_VERSION_NUM >= 502)
+				len = lua_rawlen(L, -1);
+#				else
+				lua_pushstring(L, "len");
+				lua_rawget(L, -2);				
+				len = lua_tointeger(L, -1);
+				lua_pop(L, 1);
+#				endif
 				for (size_t i(0); i < len; ++i)
 				{
 #					if (LUA_VERSION_NUM >= 503)
@@ -809,7 +817,7 @@ namespace luabind
 						}
 					}
 					lua_settop(L, 4);
-				}				
+				}
 			}
 			return 0;
 		}
@@ -884,7 +892,15 @@ namespace luabind
 			if (lua_type(L, -1) == LUA_TTABLE)
 #			endif
 			{
-				size_t len = lua_rawlen(L, -1);
+				size_t len;
+#				if (LUA_VERSION_NUM >= 502)
+				len = lua_rawlen(L, -1);
+#				else
+				lua_pushstring(L, "len");
+				lua_rawget(L, -2);
+				len = lua_tointeger(L, -1);
+				lua_pop(L, 1);
+#				endif
 				for (size_t i(0); i < len; ++i)
 				{
 #					if (LUA_VERSION_NUM >= 503)
@@ -1166,11 +1182,6 @@ namespace luabind
 		{
 
 		}
-
-		static void fill(lua_State* L) noexcept
-		{
-
-		}
 	};
 
 	template<class _Der, class _This, class... _Rest>
@@ -1190,19 +1201,34 @@ namespace luabind
 			super_info->sub_map[info->type_id] = std::make_pair(diff, super_info);
 			base_finder<_Der, _Rest...>::find(e);
 		}
+	};
 
+	template<int idx, class _Der, class... _Bases>
+	struct base_filler;
+
+	template<int idx, class _Der>
+	struct base_filler<idx, _Der>
+	{
 		static void fill(lua_State* L) noexcept
 		{
-			auto len = lua_rawlen(L, -1);			
+
+		}
+	};
+
+	template<int idx, class _Der, class _This, class... _Rest>
+	struct base_filler<idx, _Der, _This, _Rest...>
+	{
+		static void fill(lua_State* L) noexcept
+		{
 			detail::class_info_data* super_info = &(detail::class_info<_This>::info_data_map[get_main(L)]);
 			LB_ASSERT(super_info->class_id);
 			lua_rawgeti(L, LUA_REGISTRYINDEX, super_info->class_id);
 			LB_ASSERT_EQ(lua_getmetatable(L, -1), 1);
 			lua_rawgeti(L, -1, INDEX_CLASS);
-			LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);			
-			lua_rawseti(L, -4, int(len + 1));
-			lua_pop(L, 2);			
-			base_finder<_Der, _Rest...>::fill(L);
+			LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
+			lua_rawseti(L, -4, idx + 1);
+			lua_pop(L, 2);
+			base_filler<idx + 1, _Der, _Rest...>::fill(L);
 		}
 	};
 	
@@ -1497,8 +1523,14 @@ namespace luabind
 					if (sizeof...(_Bases))
 					{
 						lua_newtable(L);
-						base_finder<_Der, _Bases...>::fill(L);
+						base_filler<0, _Der, _Bases...>::fill(L);
+#						if (LUA_VERSION_NUM >= 502)
 						LB_ASSERT(lua_rawlen(L, -1) == sizeof...(_Bases));
+#						else
+						lua_pushstring(L, "len");
+						lua_pushinteger(L, sizeof...(_Bases));
+						lua_rawset(L, -3);					
+#						endif
 						lua_rawseti(L, -2, OBJ_SUPER);					
 					}
 				}

@@ -39,7 +39,11 @@ namespace luabind
 	{
 		if (!s) return 0;
 		int top = lua_gettop(L);
+#		if (LUA_VERSION_NUM >= 502)
 		lua_pushglobaltable(L);
+#		else
+		lua_pushvalue(L, LUA_GLOBALSINDEX);
+#		endif
 		const char* start = s;
 		const char* end = vtd::strchr(start, '.');
 		while (start)
@@ -114,7 +118,7 @@ namespace luabind
 		lua_State* L = obj.get_lua();
 		if (!L)
 		{
-			LB_LOG_W("obj is invaild.");
+			LB_LOG_W("obj is invaild");
 			return type_traits<_Ret>::make_default();
 		}
 		LUABIND_HOLD_STACK(L);

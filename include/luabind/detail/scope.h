@@ -797,7 +797,11 @@ namespace luabind
 				lua_State* L = inner->L;
 				LB_ASSERT(!lua_gettop(L));
 				LUABIND_CHECK_STACK(L);				
+#				if (LUA_VERSION_NUM >= 502)
 				lua_pushglobaltable(L);
+#				else
+				lua_pushvalue(L, LUA_GLOBALSINDEX);
+#				endif
 				namespace_::enrollment::getmetatable(L, "");
 				if (name)
 				{
