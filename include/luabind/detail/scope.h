@@ -69,7 +69,12 @@ namespace luabind
 			static void gettable(lua_State* L, const char* name) noexcept
 			{
 				lua_pushstring(L, name);
+#				if (LUA_VERSION_NUM >= 503)
 				if (!lua_rawget(L, -2))
+#				else
+				lua_rawget(L, -2);
+				if(!lua_type(L, -1))
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -86,7 +91,12 @@ namespace luabind
 			static int inner_index(lua_State* L) noexcept
 			{
 				lua_pushvalue(L, -1);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, lua_upvalueindex(1)) == LUA_TFUNCTION)
+#				else
+				lua_rawget(L, lua_upvalueindex(1));
+				if (lua_type(L, -1) == LUA_TFUNCTION)
+#				endif
 				{
 					if (lua_pcall(L, 0, 1, 0))
 					{
@@ -102,7 +112,12 @@ namespace luabind
 
 			static void getreader(lua_State* L) noexcept
 			{
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -2, INDEX_READER) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -2, INDEX_READER);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -126,7 +141,12 @@ namespace luabind
 
 			static void getwriter(lua_State* L) noexcept
 			{
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -2, INDEX_WRITER) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -2, INDEX_WRITER);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -531,10 +551,20 @@ namespace luabind
 		{
 			if (lua_getmetatable(L, 1))
 			{
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, INDEX_WRITER) == LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -1, INDEX_WRITER);
+				if (lua_type(L, -1) == LUA_TTABLE)
+#				endif
 				{
 					lua_pushvalue(L, 2);
+#					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+#					else
+					lua_rawget(L, -2);
+					if (lua_type(L, -1) == LUA_TFUNCTION)
+#					endif
 					{
 						lua_pushvalue(L, 3);
 						if (lua_pcall(L, 1, 1, 0))
@@ -618,7 +648,12 @@ namespace luabind
 				lua_settop(L, 3);
 			}			
 			lua_pushvalue(L, 2);
+#			if (LUA_VERSION_NUM >= 503)
 			if (lua_gettable(L, lua_upvalueindex(1)) > 1)
+#			else
+			lua_gettable(L, lua_upvalueindex(1));
+			if (lua_type(L, -1) > 1)
+#			endif			
 			{				
 				lua_getglobal(L, "tostring");
 				lua_pushvalue(L, 3);
@@ -661,7 +696,12 @@ namespace luabind
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 				lua_pushstring(L, "__index");
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) != LUA_TTABLE)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_pushinteger(L, SCOPE_NAMESPACE);
@@ -695,7 +735,8 @@ namespace luabind
 			{
 				LUABIND_CHECK_STACK(L);
 				char full_name[LB_BUF_SIZE];
-				LB_ASSERT_EQ(lua_rawgeti(L, -2, INDEX_SCOPE_NAME), LUA_TSTRING);
+				lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
+				LB_ASSERT(lua_type(L, -1) == LUA_TSTRING);
 				const char* super_name = lua_tostring(L, -1);
 				if (*super_name)
 				{
