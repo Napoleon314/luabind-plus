@@ -689,19 +689,39 @@ namespace luabind
 
 		inline int inherit_index(lua_State* L) noexcept
 		{
+#			if (LUA_VERSION_NUM >= 503)
 			if (lua_rawgeti(L, -1, OBJ_FUNC) == LUA_TTABLE)
+#			else
+			lua_rawgeti(L, -1, OBJ_FUNC);
+			if (lua_type(L, -1) == LUA_TTABLE)
+#			endif
 			{
 				lua_pushvalue(L, 2);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) == LUA_TFUNCTION)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) == LUA_TFUNCTION)
+#				endif
 				{
 					return 1;
 				}
 			}
 			lua_settop(L, 3);
+#			if (LUA_VERSION_NUM >= 503)
 			if (lua_rawgeti(L, -1, OBJ_READER) == LUA_TTABLE)
+#			else
+			lua_rawgeti(L, -1, OBJ_READER);
+			if (lua_type(L, -1) == LUA_TTABLE)
+#			endif			
 			{
 				lua_pushvalue(L, 2);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) == LUA_TFUNCTION)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) == LUA_TFUNCTION)
+#				endif
 				{
 					lua_pushvalue(L, 1);
 					if (lua_pcall(L, 1, 1, 0))
@@ -715,14 +735,29 @@ namespace luabind
 				}
 			}
 			lua_settop(L, 3);
+#			if (LUA_VERSION_NUM >= 503)
 			if (lua_rawgeti(L, -1, OBJ_SUPER) == LUA_TTABLE)
+#			else
+			lua_rawgeti(L, -1, OBJ_SUPER);
+			if (lua_type(L, -1) == LUA_TTABLE)
+#			endif
 			{
 				size_t len = lua_rawlen(L, -1);
 				for (size_t i(0); i < len; ++i)
 				{
+#					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawgeti(L, -1, i + 1) == LUA_TTABLE)
+#					else
+					lua_rawgeti(L, -1, i + 1);
+					if (lua_type(L, -1) == LUA_TTABLE)
+#					endif
 					{
+#						if (LUA_VERSION_NUM >= 503)
 						if (lua_rawgeti(L, -1, OBJ_INDEX) == LUA_TFUNCTION)
+#						else
+						lua_rawgeti(L, -1, OBJ_INDEX);
+						if (lua_type(L, -1) == LUA_TFUNCTION)
+#						endif						
 						{
 							lua_pushvalue(L, 1);
 							lua_pushvalue(L, 2);
@@ -748,7 +783,12 @@ namespace luabind
 		{
 			if (lua_getmetatable(L, 1))
 			{
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, OBJ_INDEX) == LUA_TFUNCTION)
+#				else
+				lua_rawgeti(L, -1, OBJ_INDEX);
+				if (lua_type(L, -1) == LUA_TFUNCTION)
+#				endif
 				{
 					lua_pushvalue(L, 1);
 					lua_pushvalue(L, 2);
@@ -774,10 +814,20 @@ namespace luabind
 
 		inline int inherit_newindex(lua_State* L) noexcept
 		{
+#			if (LUA_VERSION_NUM >= 503)
 			if (lua_rawgeti(L, -1, OBJ_WRITER) == LUA_TTABLE)
+#			else
+			lua_rawgeti(L, -1, OBJ_WRITER);
+			if (lua_type(L, -1) == LUA_TTABLE)
+#			endif
 			{
 				lua_pushvalue(L, 2);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) == LUA_TFUNCTION)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) == LUA_TFUNCTION)
+#				endif				
 				{
 					lua_pushvalue(L, 1);
 					lua_pushvalue(L, 3);
@@ -792,14 +842,29 @@ namespace luabind
 				}
 			}
 			lua_settop(L, 4);
+#			if (LUA_VERSION_NUM >= 503)
 			if (lua_rawgeti(L, -1, OBJ_SUPER) == LUA_TTABLE)
+#			else
+			lua_rawgeti(L, -1, OBJ_SUPER);
+			if (lua_type(L, -1) == LUA_TTABLE)
+#			endif
 			{
 				size_t len = lua_rawlen(L, -1);
 				for (size_t i(0); i < len; ++i)
 				{
+#					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawgeti(L, -1, i + 1) == LUA_TTABLE)
+#					else
+					lua_rawgeti(L, -1, i + 1);
+					if (lua_type(L, -1) == LUA_TTABLE)
+#					endif					
 					{
+#						if (LUA_VERSION_NUM >= 503)
 						if (lua_rawgeti(L, -1, OBJ_NEW_INDEX) == LUA_TFUNCTION)
+#						else
+						lua_rawgeti(L, -1, OBJ_NEW_INDEX);
+						if (lua_type(L, -1) == LUA_TFUNCTION)
+#						endif
 						{
 							lua_pushvalue(L, 1);
 							lua_pushvalue(L, 2);
@@ -826,7 +891,12 @@ namespace luabind
 		{
 			if (lua_getmetatable(L, 1))
 			{
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, OBJ_NEW_INDEX) == LUA_TFUNCTION)
+#				else
+				lua_rawgeti(L, -1, OBJ_NEW_INDEX);
+				if (lua_type(L, -1) == LUA_TFUNCTION)
+#				endif
 				{
 					lua_pushvalue(L, 1);
 					lua_pushvalue(L, 2);
