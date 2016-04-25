@@ -388,6 +388,19 @@ int main()
 			lua_pop(L, 1);
 		}
 
+		{
+			object func;
+			{
+				LUABIND_HOLD_STACK(L);
+				if (push_func_name(L, "test_lua_func") == 1)
+				{
+					func.replace(L, -1);
+				}
+			}
+			int ret = call_function<int>(func);
+			ret = 0;
+		}
+
 		static_assert(count_func_params(&add) == 2, "");
 
 		//TestClass1 aaa(5, 6);

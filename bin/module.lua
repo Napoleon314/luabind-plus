@@ -1,6 +1,26 @@
 --obj = luabind.TestClass1.new_s(88, 99)
 --print("obj", obj, obj.b)
 
+function test_lua_func()
+	return 5
+end
+
+d = luabind.TestD()
+print("d.d1,d.d2", d.d1, d.d2)
+
+test_obj = {}
+test_meta = {}
+test_meta.__index = d
+test_meta.__newindex = d
+
+setmetatable(test_obj, test_meta)
+
+test_obj.p1 = 100
+
+print("test_obj", test_obj.p1)
+
+
+
 print(luabind.EnumTest)
 print(luabind.ENUM_1, luabind.ENUM_2, luabind.ENUM_3)
 print(luabind.EnumTest.e1, luabind.EnumTest.e2, luabind.EnumTest.e3)

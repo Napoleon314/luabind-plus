@@ -108,6 +108,46 @@ namespace luabind
 		}
 	}
 
+	template <class _Ret = void, class... _Types>
+	_Ret call_function(object& obj, _Types... pak) noexcept
+	{
+		lua_State* L = obj.get_lua();
+		if (!L)
+		{
+			LB_LOG_W("obj is invaild.");
+			return type_traits<_Ret>::make_default();
+		}
+		LUABIND_HOLD_STACK(L);
+		if (obj.push(L) != 1)
+		{
+			LB_LOG_W("obj is not a vaild function");
+			return type_traits<_Ret>::make_default();
+		}
+		LB_ASSERT(lua_type(L, -1) == LUA_TFUNCTION);
+		int num_params = params_pusher<_Types...>::push(L, pak...);
+		if (num_params != params_traits<_Types...>::stack_count)
+		{
+			LB_LOG_W("call function in object without correct params");
+			return type_traits<_Ret>::make_default();
+		}
+		if (lua_pcall(L, num_params, type_traits<_Ret>::stack_count, 0))
+		{
+			LB_LOG_E("%s", lua_tostring(L, -1));
+			return type_traits<_Ret>::make_default();
+		}
+		if (type_traits<_Ret>::test(L, -type_traits<_Ret>::stack_count))
+		{
+			return type_traits<_Ret>::get(L, -type_traits<_Ret>::stack_count);
+		}
+		else
+		{
+			LB_LOG_E("call function in object with wrong return");
+			return type_traits<_Ret>::make_default();
+		}
+
+		return type_traits<_Ret>::make_default();
+	}
+
 	template <int idx, class _Ret, class... _Types>
 	struct func_shell
 	{

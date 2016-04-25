@@ -71,6 +71,11 @@ namespace luabind
 			return *this;
 		}
 
+		lua_State* get_lua() noexcept
+		{
+			return parent->L;
+		}
+
 		int push(lua_State* L) const
 		{
 			if (handle)
