@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.2)
 project (luabind_plus_test)
 
 if(MSVC)
@@ -25,15 +25,23 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 file(GLOB_RECURSE VTD_INC ${PROJECT_BINARY_DIR} "../../include/vtd/*")
 file(GLOB_RECURSE LUABIND_INC ${PROJECT_BINARY_DIR} "../../include/luabind/*")
-file(GLOB_RECURSE LUABIND_TEST ${PROJECT_BINARY_DIR} "../../test/*")
-file(GLOB_RECURSE LUABIND_TEST_LUA ${PROJECT_BINARY_DIR} "../../test/lua/*")
+file(GLOB LUABIND_TEST LIST_DIRECTORIES false ${PROJECT_BINARY_DIR} "../../test/*")
+file(GLOB_RECURSE LUABIND_TEST_LUA_5_3 ${PROJECT_BINARY_DIR} "../../test/lua5.3/*")
+file(GLOB_RECURSE LUABIND_TEST_LUA_5_2 ${PROJECT_BINARY_DIR} "../../test/lua5.2/*")
+file(GLOB_RECURSE LUABIND_TEST_LUA_5_1 ${PROJECT_BINARY_DIR} "../../test/lua5.1/*")
 
 SOURCE_GROUP("vtd" FILES ${VTD_INC})
 SOURCE_GROUP("luabind" FILES ${LUABIND_INC})
 SOURCE_GROUP("test" FILES ${LUABIND_TEST})
-SOURCE_GROUP("lua" FILES ${LUABIND_TEST_LUA})
+SOURCE_GROUP("test\\lua" FILES ${LUABIND_TEST_LUA_5_3} ${LUABIND_TEST_LUA_5_2} ${LUABIND_TEST_LUA_5_1})
 
 include_directories(${PROJECT_BINARY_DIR} "../../include")
 include_directories(${PROJECT_BINARY_DIR} "../../test")
 
-add_executable(luabind_plus_test ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST} ${LUABIND_TEST_LUA})
+add_executable(luabind_plus_test_5_3 ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST} ${LUABIND_TEST_LUA_5_3})
+add_executable(luabind_plus_test_5_2 ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST} ${LUABIND_TEST_LUA_5_2})
+add_executable(luabind_plus_test_5_1 ${VTD_INC} ${LUABIND_INC} ${LUABIND_TEST} ${LUABIND_TEST_LUA_5_1})
+
+target_include_directories(luabind_plus_test_5_3 PUBLIC ${PROJECT_BINARY_DIR} "../../test/lua5.3")
+target_include_directories(luabind_plus_test_5_2 PUBLIC ${PROJECT_BINARY_DIR} "../../test/lua5.2")
+target_include_directories(luabind_plus_test_5_1 PUBLIC ${PROJECT_BINARY_DIR} "../../test/lua5.1")
