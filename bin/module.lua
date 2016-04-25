@@ -8,16 +8,16 @@ end
 d = luabind.TestD()
 print("d.d1,d.d2", d.d1, d.d2)
 
-test_obj = {}
+test_obj = { super = d }
 test_meta = {}
 test_meta.__index = d
 test_meta.__newindex = d
 
 setmetatable(test_obj, test_meta)
 
-test_obj.p1 = 100
+test_obj.d1 = 100
 
-print("test_obj", test_obj.p1)
+print("test_obj", test_obj.d1, test_obj.super.d1)
 
 
 
