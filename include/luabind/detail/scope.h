@@ -395,7 +395,12 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -2, INDEX_FUNC) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -2, INDEX_FUNC);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);					
@@ -404,7 +409,12 @@ namespace luabind
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 				lua_pushstring(L, name);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) != LUA_TUSERDATA)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) != LUA_TUSERDATA)
+#				endif
 				{
 					lua_pop(L, 1);
 					void* data = lua_newuserdata(L, sizeof(func_holder*));

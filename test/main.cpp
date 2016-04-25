@@ -105,7 +105,7 @@ void test_rtti()
 
 int lua_print(lua_State* L) noexcept
 {
-	lua_writestring("--->", 4);
+	fwrite("--->", sizeof(char), 4, stdout);
 	int n = lua_gettop(L);  /* number of arguments */
 	int i;
 	lua_getglobal(L, "tostring");
@@ -118,11 +118,12 @@ int lua_print(lua_State* L) noexcept
 		s = lua_tolstring(L, -1, &l);  /* get result */
 		if (s == NULL)
 			return luaL_error(L, "'tostring' must return a string to 'print'");
-		if (i > 1) lua_writestring("\t", 1);
-		lua_writestring(s, l);
+		if (i > 1) fwrite("\t", sizeof(char), 1, stdout);
+		fwrite(s, sizeof(char), l, stdout);
 		lua_pop(L, 1);  /* pop result */
 	}
-	lua_writeline();
+	fwrite("\n", sizeof(char), 1, stdout);
+	fflush(stdout);
 	return 0;
 }
 

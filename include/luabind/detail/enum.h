@@ -98,7 +98,12 @@ namespace luabind
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 				lua_pushstring(L, "__index");
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) != LUA_TTABLE)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_pushinteger(L, SCOPE_ENUM);
@@ -131,7 +136,8 @@ namespace luabind
 			{
 				LUABIND_CHECK_STACK(L);
 				char full_name[LB_BUF_SIZE];
-				LB_ASSERT_EQ(lua_rawgeti(L, -2, INDEX_SCOPE_NAME), LUA_TSTRING);
+				lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
+				LB_ASSERT(lua_type(L, -1) == LUA_TSTRING);
 				const char* super_name = lua_tostring(L, -1);
 				if (*super_name)
 				{

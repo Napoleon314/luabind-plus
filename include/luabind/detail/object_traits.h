@@ -141,9 +141,11 @@ namespace luabind
 			data->info.type = USERDATA_CLASS;
 			data->info.storage = s;
 			data->info.type_id = info.type_id;
-			LB_ASSERT_EQ(lua_rawgeti(L, LUA_REGISTRYINDEX, info.class_id), LUA_TTABLE);
+			lua_rawgeti(L, LUA_REGISTRYINDEX, info.class_id);
+			LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 			LB_ASSERT_EQ(lua_getmetatable(L, -1), 1);
-			LB_ASSERT_EQ(lua_rawgeti(L, -1, INDEX_CLASS), LUA_TTABLE);
+			lua_rawgeti(L, -1, INDEX_CLASS);
+			LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 			lua_setmetatable(L, -4);
 			lua_pop(L, 2);
 			return data;

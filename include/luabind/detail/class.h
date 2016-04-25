@@ -230,7 +230,13 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
+
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -3, INDEX_CONSTRUCTOR) != LUA_TUSERDATA)
+#				else
+				lua_rawgeti(L, -3, INDEX_CONSTRUCTOR);
+				if (lua_type(L, -1) != LUA_TUSERDATA)
+#				endif
 				{
 					lua_pop(L, 1);
 					void* data = lua_newuserdata(L, sizeof(func_holder*));
@@ -353,7 +359,12 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -3, INDEX_FUNC) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -3, INDEX_FUNC);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -362,7 +373,12 @@ namespace luabind
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);				
 				lua_pushstring(L, "new");
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) != LUA_TUSERDATA)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) != LUA_TUSERDATA)
+#				endif
 				{
 					lua_pop(L, 1);					
 					void* data = lua_newuserdata(L, sizeof(func_holder*));
@@ -595,7 +611,12 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, OBJ_FUNC) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -1, OBJ_FUNC);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif				
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -625,8 +646,13 @@ namespace luabind
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
-				LUABIND_HOLD_STACK(L);			
+				LUABIND_HOLD_STACK(L);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, OBJ_FUNC_HOLDER) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -1, OBJ_FUNC_HOLDER);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif				
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -634,7 +660,12 @@ namespace luabind
 					lua_rawseti(L, -3, OBJ_FUNC_HOLDER);
 				}
 				lua_pushstring(L, name);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) != LUA_TUSERDATA)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) != LUA_TUSERDATA)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_pushlightuserdata(L, &class_info<typename _Shell::_Class>::info_data_map[get_main(L)]);
@@ -652,8 +683,12 @@ namespace luabind
 					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
 					lua_pushstring(L, name);
 					lua_pushcclosure(L, &member_func_holder::entry, 4);
-
+#					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawgeti(L, -3, OBJ_FUNC) != LUA_TTABLE)
+#					else
+					lua_rawgeti(L, -3, OBJ_FUNC);
+					if (lua_type(L, -1) != LUA_TTABLE)
+#					endif
 					{
 						lua_pop(L, 1);
 						lua_newtable(L);
@@ -748,7 +783,7 @@ namespace luabind
 #					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawgeti(L, -1, i + 1) == LUA_TTABLE)
 #					else
-					lua_rawgeti(L, -1, i + 1);
+					lua_rawgeti(L, -1, int(i + 1));
 					if (lua_type(L, -1) == LUA_TTABLE)
 #					endif
 					{
@@ -855,7 +890,7 @@ namespace luabind
 #					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawgeti(L, -1, i + 1) == LUA_TTABLE)
 #					else
-					lua_rawgeti(L, -1, i + 1);
+					lua_rawgeti(L, -1, int(i + 1));
 					if (lua_type(L, -1) == LUA_TTABLE)
 #					endif					
 					{
@@ -959,8 +994,13 @@ namespace luabind
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
-				LUABIND_HOLD_STACK(L);				
+				LUABIND_HOLD_STACK(L);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, OBJ_READER) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -1, OBJ_READER);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -1028,7 +1068,12 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, OBJ_WRITER) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -1, OBJ_WRITER);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
@@ -1153,8 +1198,9 @@ namespace luabind
 			LB_ASSERT(super_info->class_id);
 			lua_rawgeti(L, LUA_REGISTRYINDEX, super_info->class_id);
 			LB_ASSERT_EQ(lua_getmetatable(L, -1), 1);
-			LB_ASSERT_EQ(lua_rawgeti(L, -1, INDEX_CLASS), LUA_TTABLE);			
-			lua_rawseti(L, -4, len + 1);
+			lua_rawgeti(L, -1, INDEX_CLASS);
+			LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);			
+			lua_rawseti(L, -4, int(len + 1));
 			lua_pop(L, 2);			
 			base_finder<_Der, _Rest...>::fill(L);
 		}
@@ -1266,10 +1312,20 @@ namespace luabind
 		{
 			if (lua_getmetatable(L, 1))
 			{
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -1, INDEX_WRITER) == LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -1, INDEX_WRITER);
+				if (lua_type(L, -1) == LUA_TTABLE)
+#				endif
 				{
 					lua_pushvalue(L, 2);
+#					if (LUA_VERSION_NUM >= 503)
 					if (lua_rawget(L, -2) == LUA_TFUNCTION)
+#					else
+					lua_rawget(L, -2);
+					if (lua_type(L, -1) == LUA_TFUNCTION)
+#					endif
 					{
 						lua_pushvalue(L, 3);
 						if (lua_pcall(L, 1, 0, 0))
@@ -1349,7 +1405,8 @@ namespace luabind
 				auto info = get_class_info(L);
 				LUABIND_CHECK_STACK(L);
 				char full_name[LB_BUF_SIZE];
-				LB_ASSERT_EQ(lua_rawgeti(L, -2, INDEX_SCOPE_NAME), LUA_TSTRING);
+				lua_rawgeti(L, -2, INDEX_SCOPE_NAME);
+				LB_ASSERT(lua_type(L, -1) == LUA_TSTRING);
 				const char* super_name = lua_tostring(L, -1);
 				if (*super_name)
 				{
@@ -1369,7 +1426,12 @@ namespace luabind
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 				lua_pushstring(L, "__index");
-				if (!lua_rawget(L, -2))
+#				if (LUA_VERSION_NUM >= 503)
+				if (lua_rawget(L, -2) != LUA_TTABLE)
+#				else
+				lua_rawget(L, -2);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif
 				{
 					lua_pop(L, 1);
 					lua_pushinteger(L, SCOPE_CLASS);
@@ -1401,7 +1463,12 @@ namespace luabind
 					lua_pushvalue(L, -3);
 					info->class_id = luaL_ref(L, LUA_REGISTRYINDEX);
 				}
+#				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawgeti(L, -2, INDEX_CLASS) != LUA_TTABLE)
+#				else
+				lua_rawgeti(L, -2, INDEX_CLASS);
+				if (lua_type(L, -1) != LUA_TTABLE)
+#				endif				
 				{
 					lua_pop(L, 1);
 					lua_newtable(L);
