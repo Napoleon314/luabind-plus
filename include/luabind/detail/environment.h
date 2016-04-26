@@ -33,12 +33,6 @@
 #include <vector>
 #include <unordered_map>
 #include <vtd/intrusive_ptr.h>
-#if (LUA_VERSION_NUM < 502)
-extern "C"
-{
-#	include <lstate.h>
-}
-#endif
 
 namespace luabind
 {
@@ -99,21 +93,13 @@ namespace luabind
 
 	typedef vtd::intrusive_ptr<env> env_ptr;
 
-	inline lua_State* get_main(lua_State* L) noexcept
-	{
-#		if (LUA_VERSION_NUM >= 502)
-		LUABIND_HOLD_STACK(L);
-		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-		LB_ASSERT(lua_type(L, -1) == LUA_TTHREAD);
-		return lua_tothread(L, -1);
-#		else
-		return L->l_G->mainthread;
-#		endif
-	}
+	inline lua_State* get_main(lua_State* L) noexcept;
 
 	inline env* get_env(lua_State* L) noexcept
 	{
+#		if (LUA_VERSION_NUM >= 502)
 		L = get_main(L);
+#		endif
 		LUABIND_HOLD_STACK(L);
 #		if (LUA_VERSION_NUM >= 502)
 		lua_pushglobaltable(L);
@@ -143,5 +129,17 @@ namespace luabind
 			lua_setmetatable(L, -2);								//set metatable for global
 			return e;
 		}
+	}
+
+	inline lua_State* get_main(lua_State* L) noexcept
+	{
+#		if (LUA_VERSION_NUM >= 502)
+		LUABIND_HOLD_STACK(L);
+		lua_rawgeti(L, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
+		LB_ASSERT(lua_type(L, -1) == LUA_TTHREAD);
+		return lua_tothread(L, -1);
+#		else
+		return get_env(L)->L;
+#		endif
 	}
 }
