@@ -75,6 +75,8 @@ namespace luabind
 		lua_State* L = nullptr;
 		std::vector<detail::class_info_data*> class_map;
 
+		virtual ~env() noexcept = default;
+
 		void inc() noexcept
 		{
 			++ref_count;

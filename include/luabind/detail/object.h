@@ -103,6 +103,7 @@ namespace luabind
 		{
 			clear();
 			parent = get_env(L);
+			parent->inc();
 			if (parent->L)
 			{
 				LUABIND_HOLD_STACK(parent->L);
@@ -122,6 +123,7 @@ namespace luabind
 		{
 			clear();
 			parent = copy.parent;
+			parent->inc();
 			if (parent->L && copy.handle)
 			{
 				LUABIND_HOLD_STACK(parent->L);
@@ -208,14 +210,17 @@ namespace luabind
 		{
 			if (handle)
 			{
-				LB_ASSERT(parent);
-				if (parent->L)
+				if (parent && parent->L)
 				{
 					luaL_unref(parent->L, LUA_REGISTRYINDEX, handle);
 				}
-				parent = nullptr;
 				handle = 0;
 			}
+			if (parent)
+			{
+				parent->dec();
+				parent = nullptr;
+			}			
 		}
 
 		template <class _Val, class _Key>
