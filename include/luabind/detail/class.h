@@ -1389,13 +1389,13 @@ namespace luabind
 					vtd::intrusive_obj<_Der>::dec((*(_Der**)(data + 1)));
 					break;
 				case STORAGE_U_PTR:
-					(*(std::unique_ptr<_Der>*)(data + 1)).~unique_ptr<_Der>();
+					((detail::userdata_obj<_Der, STORAGE_U_PTR>*)data)->~userdata_obj();
 					break;
 				case STORAGE_S_PTR:
-					(*(std::shared_ptr<_Der>*)(data + 1)).~shared_ptr<_Der>();
+					((detail::userdata_obj<_Der, STORAGE_S_PTR>*)data)->~userdata_obj();
 					break;
 				case STORAGE_W_PTR:
-					(*(std::weak_ptr<_Der>*)(data + 1)).~weak_ptr<_Der>();
+					((detail::userdata_obj<_Der, STORAGE_W_PTR>*)data)->~userdata_obj();
 					break;
 				default:
 					break;
