@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include <stdio.h>
 #include <utility>
 
 namespace vtd
