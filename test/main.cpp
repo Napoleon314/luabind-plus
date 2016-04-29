@@ -31,8 +31,6 @@
 #ifdef _MSC_VER
 #   include <vld.h>
 #endif
-#include <stdio.h>
-#include <vtd/rtti.h>
 extern "C"
 {
 #	include <lua.h>
@@ -43,7 +41,17 @@ extern "C"
 #define LB_ASSERT assert
 #define LB_LOG_W printf
 #define LB_LOG_E printf
+#include <vtd/intrusive_ptr.h>
+namespace luabind
+{
+	template <class _Ty>
+	struct intrusive_obj : vtd::intrusive_obj<_Ty>
+	{
+
+	};
+}
 #include <luabind/luabind.h>
+#include <vtd/rtti.h>
 
 class A
 {
@@ -252,7 +260,7 @@ struct TestD : TestA, TestB, TestC
 	}
 };
 
-void TestConvert(TestA a1, vtd::intrusive_ptr<TestA> a2, std::shared_ptr<TestA> a3) noexcept
+void TestConvert(TestA a1, TestA& a2, std::shared_ptr<TestA> a3) noexcept
 {
 
 }
@@ -271,7 +279,7 @@ int main()
 {
 	using namespace std;
 	using namespace luabind;
-	test_rtti();
+	//test_rtti();
 	lua_State* L = luaL_newstate();
 	if (L)
 	{

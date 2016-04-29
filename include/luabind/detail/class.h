@@ -31,7 +31,6 @@
 #pragma once
 
 #include <memory>
-#include <vtd/rtti.h>
 
 namespace luabind
 {
@@ -1191,7 +1190,8 @@ namespace luabind
 		{
 			detail::class_info_data* info = &(detail::class_info<_Der>::info_data_map[e.L]);
 			detail::class_info_data* super_info = &(detail::class_info<_This>::info_data_map[e.L]);
-			ptrdiff_t diff = vtd::rtti::base::offset<_This, _Der>();
+			static_assert(std::is_base_of<_This, _Der>::value, "_This need to be a base of _Der.");
+			ptrdiff_t diff = (ptrdiff_t)(void*)static_cast<_This*>(((_Der*)1)) - 1;
 			info->base_map[super_info->type_id] = std::make_pair(diff, super_info);
 			for (auto base : super_info->base_map)
 			{
@@ -1386,7 +1386,7 @@ namespace luabind
 					(*(_Der*)(data + 1)).~_Der();
 					break;
 				case STORAGE_I_PTR:
-					vtd::intrusive_obj<_Der>::dec((*(_Der**)(data + 1)));
+					intrusive_obj<_Der>::dec((*(_Der**)(data + 1)));
 					break;
 				case STORAGE_U_PTR:
 					((detail::userdata_obj<_Der, STORAGE_U_PTR>*)data)->~userdata_obj();

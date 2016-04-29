@@ -31,7 +31,6 @@
 #pragma once
 
 #include <functional>
-#include <vtd/string.h>
 
 namespace luabind
 {
@@ -45,7 +44,7 @@ namespace luabind
 		lua_pushvalue(L, LUA_GLOBALSINDEX);
 #		endif
 		const char* start = s;
-		const char* end = vtd::strchr(start, '.');
+		const char* end = strchr(start, '.');
 		while (start)
 		{
 			if (lua_type(L, -1) != LUA_TTABLE)
@@ -57,7 +56,7 @@ namespace luabind
 			{
 				lua_pushlstring(L, start, end - start);
 				start = end + 1;
-				end = vtd::strchr(start, '.');
+				end = strchr(start, '.');
 			}
 			else
 			{

@@ -168,7 +168,7 @@ int luaH_next (lua_State *L, Table *t, StkId key) {
       return 1;
     }
   }
-  for (i -= t->sizearray; i < sizenode(t); i++) {  /* then hash part */
+  for (i -= t->sizearray; i < (int)sizenode(t); i++) {  /* then hash part */
     if (!ttisnil(gval(gnode(t, i)))) {  /* a non-nil value? */
       setobj2s(L, key, key2tval(gnode(t, i)));
       setobj2s(L, key+1, gval(gnode(t, i)));

@@ -60,6 +60,8 @@
 #define LB_ASSERT_EQ(e,v) e
 #endif
 
+#include <stdio.h>
+#include <string.h>
 #include "detail/utility.h"
 #include "detail/type_traits.h"
 #include "detail/environment.h"

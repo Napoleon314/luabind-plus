@@ -32,7 +32,7 @@
 
 #include <vector>
 #include <unordered_map>
-#include <vtd/intrusive_ptr.h>
+//#include <vtd/intrusive_ptr.h>
 
 namespace luabind
 {
@@ -71,10 +71,24 @@ namespace luabind
 		INDEX_MAX
 	};
 
-	struct env : vtd::ref_obj
-	{
+	struct env
+	{		
 		lua_State* L = nullptr;
 		std::vector<detail::class_info_data*> class_map;
+
+		void inc() noexcept
+		{
+			++ref_count;
+		}
+
+		void dec() noexcept
+		{
+			--ref_count;
+			if (!ref_count)
+			{
+				delete_this();
+			}
+		}
 
 		static int __gc(lua_State* L) noexcept
 		{
@@ -89,9 +103,16 @@ namespace luabind
 			e->dec();
 			return 0;
 		}
-	};
 
-	typedef vtd::intrusive_ptr<env> env_ptr;
+	private:
+		virtual void delete_this() noexcept
+		{
+			delete this;
+		}
+
+		size_t ref_count = 0;
+
+	};
 
 	inline lua_State* get_main(lua_State* L) noexcept;
 

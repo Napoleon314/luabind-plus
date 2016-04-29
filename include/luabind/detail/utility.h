@@ -30,6 +30,9 @@
 
 namespace luabind
 {
+	template <class _Ty>
+	struct intrusive_obj;
+
 	struct holder
 	{
 		holder(lua_State* _L) noexcept

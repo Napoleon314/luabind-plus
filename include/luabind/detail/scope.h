@@ -787,7 +787,17 @@ namespace luabind
 		module_(lua_State* L, const char* n) noexcept
 			: inner(get_env(L)), name(n)
 		{
+			inner = get_env(L);
+			inner->inc();
+		}
 
+		~module_() noexcept
+		{
+			if (inner)
+			{
+				inner->dec();
+				inner = nullptr;
+			}
 		}
 
 		void operator [] (scope s) noexcept
@@ -819,9 +829,8 @@ namespace luabind
 		}
 
 	private:
-		env_ptr inner;
-		lua_State* L;
-		const char* name;
+		env* inner = nullptr;
+		const char* name = nullptr;
 	};
 
 	inline module_ module(lua_State* L, char const* name = nullptr) noexcept

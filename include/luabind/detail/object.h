@@ -89,7 +89,7 @@ namespace luabind
 			}
 		}
 
-		const env_ptr& get_parent() const noexcept
+		const env* get_parent() const noexcept
 		{
 			return parent;
 		}
@@ -462,7 +462,7 @@ namespace luabind
 		}
 
 	private:
-		env_ptr parent;
+		env* parent = nullptr;
 		int handle = 0;
 	};
 

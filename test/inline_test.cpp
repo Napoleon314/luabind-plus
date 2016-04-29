@@ -31,8 +31,6 @@
 #ifdef _MSC_VER
 #   include <vld.h>
 #endif
-#include <stdio.h>
-#include <vtd/rtti.h>
 extern "C"
 {
 #	include <lua.h>
