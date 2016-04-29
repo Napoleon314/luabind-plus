@@ -497,8 +497,11 @@ namespace luabind
 
 	};
 
-	template <int idx, int size, class... _Rest>
-	struct tuple_pusher
+	template <int idx, class... _Rest>
+	struct tuple_pusher;
+
+	template <int idx, class... _Rest>
+	struct tuple_real_pusher
 	{
 		static int push(lua_State *L, std::tuple<_Rest...> tuple) noexcept
 		{
@@ -506,7 +509,7 @@ namespace luabind
 			int i = type_traits<decltype(val)>::push(L, val);
 			if (i >= 0)
 			{
-				int j = tuple_pusher<idx + 1, size, _Rest...>::push(L, tuple);
+				int j = tuple_pusher<idx + 1, _Rest...>::push(L, tuple);
 				if (j >= 0)
 				{
 					return i + j;
@@ -516,13 +519,20 @@ namespace luabind
 		}
 	};
 
-	template <size_t size, class... _Rest>
-	struct tuple_pusher<size, size, _Rest...>
+	template <class... _Rest>
+	struct tuple_none_pusher
 	{
 		static int push(lua_State *L, std::tuple<_Rest...> tuple) noexcept
 		{
 			return 0;
 		}
+	};
+
+	template <int idx, class... _Rest>
+	struct tuple_pusher : std::conditional<(idx < sizeof...(_Rest)),
+		tuple_real_pusher<idx, _Rest...>, tuple_none_pusher<_Rest...>>::type
+	{
+
 	};
 
 	template <class... _Types>
@@ -584,7 +594,7 @@ namespace luabind
 
 		static int push(lua_State *L, std::tuple<_This, _Rest...> val) noexcept
 		{
-			return tuple_pusher<0, sizeof...(_Rest) + 1, _This, _Rest...>::push(L, val);
+			return tuple_pusher<0, _This, _Rest...>::push(L, val);
 		}
 
 		static std::tuple<_This, _Rest...> make_default() noexcept
