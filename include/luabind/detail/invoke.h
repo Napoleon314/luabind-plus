@@ -34,7 +34,7 @@ namespace luabind
 {
 	template <int idx, class... _Types>
 	struct params_trimmer;
-	
+
 	template <int idx>
 	struct params_trimmer<idx>
 	{
@@ -91,7 +91,7 @@ namespace luabind
 					return false;
 				}
 			}
-			else if(top == stack_base && type_traits<_This>::stack_count == 0)
+			else if (top == stack_base && type_traits<_This>::stack_count == 0)
 			{
 				return func_tester<stack_base, param_idx + 1, idx, _Rest...>::test(L, top);
 			}
@@ -111,14 +111,14 @@ namespace luabind
 		}
 	};
 
-    template <int base, int idx, typename _Shell, class... _Types>
-    struct func_param_maker;
+	template <int base, int idx, typename _Shell, class... _Types>
+	struct func_param_maker;
 
 	template <int base, int idx, typename _Shell, class... _Types>
 	struct func_param_maker_default;
 
-    template <class _Shell, class... _Types>
-    struct func_caller;
+	template <class _Shell, class... _Types>
+	struct func_caller;
 
 	template <int base, int idx, class _Shell, class... _Types>
 	struct func_invoker : std::conditional < ((sizeof...(_Types)) == _Shell::params_count),
@@ -128,15 +128,15 @@ namespace luabind
 	{
 
 	};
-    
-    template <int base, int idx, typename _Shell, class... _Types>
-    struct func_param_maker
-    {
+
+	template <int base, int idx, typename _Shell, class... _Types>
+	struct func_param_maker
+	{
 		typedef typename std::tuple_element<(sizeof...(_Types)), typename _Shell::tuple>::type type;
 
-        static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
+		static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
 			typename _Shell::val_type& v, lua_State* L, int top, _Types... pak) noexcept
-        {
+		{
 			if (top > base)
 			{
 				LB_ASSERT((base + type_traits<type>::stack_count) <= top);
@@ -150,8 +150,8 @@ namespace luabind
 					_Shell::default_start, _Shell, _Types..., type>::invoke(
 						f, v, L, top, pak..., type_traits<type>::make_default());
 			}
-        }
-    };
+		}
+	};
 
 	template <int base, int idx, typename _Shell, class... _Types>
 	struct func_param_maker_default
@@ -176,16 +176,16 @@ namespace luabind
 			}
 		}
 	};
-    
-    template <class _Shell, class... _Types>
-    struct func_caller
-    {
-        static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
+
+	template <class _Shell, class... _Types>
+	struct func_caller
+	{
+		static typename _Shell::ret_type invoke(typename _Shell::func_type& f,
 			typename _Shell::val_type& v, lua_State* L, int top, _Types... pak) noexcept
-        {
-            return f(pak...);
-        }
-    };
+		{
+			return f(pak...);
+		}
+	};
 
 
 	template <int base, int idx, typename _Shell, class... _Types>

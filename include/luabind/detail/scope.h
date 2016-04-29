@@ -73,7 +73,7 @@ namespace luabind
 				if (!lua_rawget(L, -2))
 #				else
 				lua_rawget(L, -2);
-				if(!lua_type(L, -1))
+				if (!lua_type(L, -1))
 #				endif
 				{
 					lua_pop(L, 1);
@@ -125,12 +125,12 @@ namespace luabind
 					lua_rawseti(L, -4, INDEX_READER);
 				}
 				if (!lua_getmetatable(L, -2))
-				{					
-					lua_newtable(L);			
-					lua_pushstring(L, "__index");					
+				{
+					lua_newtable(L);
+					lua_pushstring(L, "__index");
 					lua_pushvalue(L, -3);
 					lua_pushcclosure(L, &inner_index, 1);
-					lua_rawset(L, -3);					
+					lua_rawset(L, -3);
 					lua_setmetatable(L, -3);
 				}
 				else
@@ -153,10 +153,10 @@ namespace luabind
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -4, INDEX_WRITER);
 				}
-			}			
+			}
 
 		private:
-            friend struct luabind::scope;
+			friend struct luabind::scope;
 			enrollment* next = nullptr;
 		};
 
@@ -193,7 +193,7 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
-				getreader(L);	
+				getreader(L);
 				lua_pushstring(L, name);
 				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
 					type_traits<holder>::stack_count);
@@ -210,13 +210,13 @@ namespace luabind
 		int value_reader(lua_State* L) noexcept
 		{
 			static_assert(type_traits<_Type>::can_push
-				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");			
+				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");
 			return type_traits<_Type>::push(L, *(_Type*)lua_touserdata(L, lua_upvalueindex(1)));
 		}
 
 		template <class _Type>
 		struct func_reader : enrollment
-		{			
+		{
 			static_assert(type_traits<_Type>::can_push
 				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");
 
@@ -241,10 +241,10 @@ namespace luabind
 			virtual void enroll(lua_State* L) const noexcept
 			{
 				LUABIND_HOLD_STACK(L);
-				getreader(L);				
+				getreader(L);
 				lua_pushstring(L, name);
 				void* data = lua_newuserdata(L, sizeof(func_type));
-				new(data) func_type(func);				
+				new(data) func_type(func);
 				lua_newtable(L);
 				lua_pushstring(L, "__gc");
 				lua_pushcfunction(L, &__gc);
@@ -332,7 +332,7 @@ namespace luabind
 				else
 				{
 					lua_pushinteger(L, WRITER_TYPE_FAILED);
-				}				
+				}
 				return 1;
 			}
 
@@ -403,8 +403,8 @@ namespace luabind
 #				endif
 				{
 					lua_pop(L, 1);
-					lua_newtable(L);					
-					lua_pushvalue(L, -1);					
+					lua_newtable(L);
+					lua_pushvalue(L, -1);
 					lua_rawseti(L, -4, INDEX_FUNC);
 				}
 				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
@@ -447,8 +447,8 @@ namespace luabind
 						{
 							h->next = new func_holder_impl<_Shell>(func, values);
 							break;
-						}						
-					}					
+						}
+					}
 				}
 			}
 
@@ -511,7 +511,7 @@ namespace luabind
 			chain = move.chain;
 			move.chain = nullptr;
 			return *this;
-		}		
+		}
 
 		scope& operator , (scope s) noexcept
 		{
@@ -581,14 +581,14 @@ namespace luabind
 						{
 							return luaL_error(L, lua_tostring(L, -1));
 						}
-						else if(lua_type(L, -1) == LUA_TNUMBER)
+						else if (lua_type(L, -1) == LUA_TNUMBER)
 						{
 							auto res = lua_tointeger(L, -1);
 							if (res == WRITER_SUCCEEDED)
 							{
 								return 0;
 							}
-							else if(res == WRITER_TYPE_FAILED)
+							else if (res == WRITER_TYPE_FAILED)
 							{
 								lua_getglobal(L, "tostring");
 								lua_pushvalue(L, 3);
@@ -656,7 +656,7 @@ namespace luabind
 					}
 				}
 				lua_settop(L, 3);
-			}			
+			}
 			lua_pushvalue(L, 2);
 #			if (LUA_VERSION_NUM >= 503)
 			if (lua_gettable(L, lua_upvalueindex(1)) > 1)
@@ -664,7 +664,7 @@ namespace luabind
 			lua_gettable(L, lua_upvalueindex(1));
 			if (lua_type(L, -1) > 1)
 #			endif			
-			{				
+			{
 				lua_getglobal(L, "tostring");
 				lua_pushvalue(L, 3);
 				lua_call(L, 1, 1);
@@ -694,7 +694,7 @@ namespace luabind
 				: name(n)
 			{
 
-			}			
+			}
 
 			static void getmetatable(lua_State* L, const char* full_name) noexcept
 			{
@@ -758,7 +758,7 @@ namespace luabind
 				}
 				lua_pop(L, 1);
 				gettable(L, name);
-				getmetatable(L, full_name);				
+				getmetatable(L, full_name);
 				inner_scope.enroll(L);
 				lua_pop(L, 3);
 			}
@@ -803,10 +803,10 @@ namespace luabind
 		void operator [] (scope s) noexcept
 		{
 			if (inner && inner->L)
-			{				
+			{
 				lua_State* L = inner->L;
 				LB_ASSERT(!lua_gettop(L));
-				LUABIND_CHECK_STACK(L);				
+				LUABIND_CHECK_STACK(L);
 #				if (LUA_VERSION_NUM >= 502)
 				lua_pushglobaltable(L);
 #				else
@@ -876,7 +876,7 @@ namespace luabind
 	}
 
 	template <class _Type>
-	scope def_reader(const char* name, _Type (*func)()) noexcept
+	scope def_reader(const char* name, _Type(*func)()) noexcept
 	{
 		return scope(new detail::func_reader<_Type>(name,
 			std::move(std::function<_Type()>(func))));
@@ -904,34 +904,34 @@ namespace luabind
 
 	template <class _Type>
 	scope def_readwrite(const char* name, _Type& val) noexcept
-	{		
+	{
 		return def_writeonly(name, val), def_readonly(name, val);
 	}
-    
-    template <class _Func, class... _Types>
-    scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
-    {
-        auto shell = create_func_shell<count_func_params((_Func*)nullptr)-(sizeof...(_Types))>(
-                                                                                               std::move(func));
-        return scope(new detail::cpp_func<decltype(shell), _Types...>(name, shell, pak...));
-    }
-    
-    template <class _Func, class... _Types>
-    scope def(const char* name, _Func* func, _Types... pak) noexcept
-    {
-        static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
-        return def(name, std::function<_Func>(func), pak...);
-    }
-    
-    template <class _Val>
-    scope def(const char* name, _Val& val) noexcept
-    {
-        return def_readonly(name, val), def_writeonly(name, val);
-    }
-    
-    template <class _Val>
-    scope def(const char* name, const _Val& val) noexcept
-    {
-        return def_readonly(name, val);
-    }
+
+	template <class _Func, class... _Types>
+	scope def(const char* name, std::function<_Func> func, _Types... pak) noexcept
+	{
+		auto shell = create_func_shell<count_func_params((_Func*)nullptr) - (sizeof...(_Types))>(
+			std::move(func));
+		return scope(new detail::cpp_func<decltype(shell), _Types...>(name, shell, pak...));
+	}
+
+	template <class _Func, class... _Types>
+	scope def(const char* name, _Func* func, _Types... pak) noexcept
+	{
+		static_assert(std::is_function<_Func>::value, "_Func has to be a function.");
+		return def(name, std::function<_Func>(func), pak...);
+	}
+
+	template <class _Val>
+	scope def(const char* name, _Val& val) noexcept
+	{
+		return def_readonly(name, val), def_writeonly(name, val);
+	}
+
+	template <class _Val>
+	scope def(const char* name, const _Val& val) noexcept
+	{
+		return def_readonly(name, val);
+	}
 }

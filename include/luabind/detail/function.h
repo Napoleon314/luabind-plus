@@ -63,7 +63,7 @@ namespace luabind
 				lua_pushstring(L, start);
 				start = nullptr;
 			}
-			lua_gettable(L, -2);			
+			lua_gettable(L, -2);
 		}
 		if (lua_type(L, -1) == LUA_TFUNCTION)
 		{
@@ -77,7 +77,7 @@ namespace luabind
 			return -1;
 		}
 	}
-	
+
 	template <class _Ret = void, class... _Types>
 	_Ret call_function(lua_State* L, const char* func,
 		_Types... pak) noexcept
@@ -218,7 +218,7 @@ namespace luabind
 			{
 				return ret;
 			}
-		}		
+		}
 
 		func_holder* next = nullptr;
 	};
@@ -266,8 +266,8 @@ namespace luabind
 		{
 			int top = lua_gettop(L);
 			if (_Shell::test(L, top))
-			{				
-				return do_invoke<_Shell>::invoke(func, vals, L, top);			
+			{
+				return do_invoke<_Shell>::invoke(func, vals, L, top);
 			}
 			else if (next)
 			{

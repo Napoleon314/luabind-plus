@@ -32,7 +32,6 @@
 
 #include <vector>
 #include <unordered_map>
-//#include <vtd/intrusive_ptr.h>
 
 namespace luabind
 {
@@ -72,7 +71,7 @@ namespace luabind
 	};
 
 	struct env
-	{		
+	{
 		lua_State* L = nullptr;
 		std::vector<detail::class_info_data*> class_map;
 

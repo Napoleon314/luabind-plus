@@ -56,7 +56,7 @@ namespace luabind
 		OBJ_INDEX,
 		OBJ_NEW_INDEX,
 		OBJ_FUNC_HOLDER,
-		OBJ_FUNC,		
+		OBJ_FUNC,
 		OBJ_READER,
 		OBJ_WRITER,
 		OBJ_SUPER,
@@ -94,7 +94,7 @@ namespace luabind
 		static bool test(lua_State* L, int top) noexcept
 		{
 			return func_tester<1, 0, idx, _Types...>::test(L, top);
-		}	
+		}
 
 		member_func_shell(func_type f) noexcept : func(f) {}
 
@@ -174,13 +174,13 @@ namespace luabind
 			}
 
 			virtual int call(lua_State* L) noexcept
-			{				
+			{
 				int top = lua_gettop(L);
 				if (_Shell::construct_test(L, top))
 				{
 					header* data = (header*)lua_newuserdata(L, sizeof(_Der) + sizeof(header));
 					data->type = USERDATA_CLASS;
-					data->storage = STORAGE_LUA;					
+					data->storage = STORAGE_LUA;
 					data->type_id = detail::class_info<_Der>::info_data_map[get_main(L)].type_id;
 					func_invoker<1, _Shell::default_start, _Shell, void*>::invoke(
 						func, vals, L, top, data + 1);
@@ -196,7 +196,7 @@ namespace luabind
 				{
 					return -1;
 				}
-			}			
+			}
 
 			func_type func;
 			val_type vals;
@@ -248,8 +248,8 @@ namespace luabind
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -5, INDEX_CONSTRUCTOR);
 					lua_pushstring(L, "__call");
-					lua_pushvalue(L, -2);					
-					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);					
+					lua_pushvalue(L, -2);
+					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
 					lua_pushvalue(L, -5);
 					lua_pushcclosure(L, &construct_entry, 3);
 					lua_rawset(L, -6);
@@ -370,7 +370,7 @@ namespace luabind
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -5, INDEX_FUNC);
 				}
-				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);				
+				LB_ASSERT(lua_type(L, -1) == LUA_TTABLE);
 				lua_pushstring(L, "new");
 #				if (LUA_VERSION_NUM >= 503)
 				if (lua_rawget(L, -2) != LUA_TUSERDATA)
@@ -379,7 +379,7 @@ namespace luabind
 				if (lua_type(L, -1) != LUA_TUSERDATA)
 #				endif
 				{
-					lua_pop(L, 1);					
+					lua_pop(L, 1);
 					void* data = lua_newuserdata(L, sizeof(func_holder*));
 					*(func_holder**)data = new new_holder<_Der, _Shell>(func, values);
 					lua_newtable(L);
@@ -389,13 +389,13 @@ namespace luabind
 					lua_setmetatable(L, -2);
 					lua_pushstring(L, "new");
 					lua_pushvalue(L, -2);
-					lua_rawset(L, -4);					
+					lua_rawset(L, -4);
 
 					lua_pushstring(L, "new");
 					lua_pushvalue(L, -2);
 					lua_rawgeti(L, -7, INDEX_SCOPE_NAME);
 					lua_pushinteger(L, STORAGE_I_PTR);
-					lua_pushcclosure(L, &new_entry, 3);					
+					lua_pushcclosure(L, &new_entry, 3);
 					lua_rawset(L, -6);
 
 					lua_pushstring(L, "new_i");
@@ -464,7 +464,7 @@ namespace luabind
 					if (!(((std::weak_ptr<void>*)(data + 1))->expired()))
 					{
 						origin = ((std::weak_ptr<void>*)(data + 1))->lock().get();
-					}					
+					}
 					break;
 				default:
 					break;
@@ -509,9 +509,9 @@ namespace luabind
 			}
 
 			static int entry(lua_State* L) noexcept
-			{				
+			{
 				if (lua_type(L, 1) == LUA_TUSERDATA)
-				{				
+				{
 					void* ptr = get_adjusted_ptr((header*)lua_touserdata(L, 1),
 						*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
 					if (ptr)
@@ -592,7 +592,7 @@ namespace luabind
 				{
 					return -1;
 				}
-			}			
+			}
 
 			func_type func;
 			val_type vals;
@@ -620,7 +620,7 @@ namespace luabind
 					lua_pop(L, 1);
 					lua_newtable(L);
 					lua_pushvalue(L, -1);
-					lua_rawseti(L, -3, OBJ_FUNC);				
+					lua_rawseti(L, -3, OBJ_FUNC);
 				}
 				lua_pushstring(L, name);
 				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
@@ -678,7 +678,7 @@ namespace luabind
 					lua_pushstring(L, name);
 					lua_pushvalue(L, -2);
 					lua_rawset(L, -5);
-					
+
 					lua_rawgeti(L, -6, INDEX_SCOPE_NAME);
 					lua_pushstring(L, name);
 					lua_pushcclosure(L, &member_func_holder::entry, 4);
@@ -781,7 +781,7 @@ namespace luabind
 				len = lua_rawlen(L, -1);
 #				else
 				lua_pushstring(L, "len");
-				lua_rawget(L, -2);				
+				lua_rawget(L, -2);
 				len = lua_tointeger(L, -1);
 				lua_pop(L, 1);
 #				endif
@@ -808,7 +808,7 @@ namespace luabind
 							{
 								return luaL_error(L, lua_tostring(L, -1));
 							}
-							
+
 							else if (lua_type(L, -1) > LUA_TNIL)
 							{
 								return 1;
@@ -821,7 +821,7 @@ namespace luabind
 			return 0;
 		}
 
-        inline int obj_index(lua_State* L) noexcept
+		inline int obj_index(lua_State* L) noexcept
 		{
 			if (lua_getmetatable(L, 1))
 			{
@@ -848,8 +848,8 @@ namespace luabind
 						return luaL_error(L, "can not find readable symbol %s in an instance of %s",
 							lua_tostring(L, 2), lua_tostring(L, lua_upvalueindex(1)));
 					}
-				}		
-			}			
+				}
+			}
 			return luaL_error(L, "wrong registered info in an instance of %s",
 				lua_tostring(L, lua_upvalueindex(1)));
 		}
@@ -1022,7 +1022,7 @@ namespace luabind
 					lua_pushvalue(L, -1);
 					lua_rawseti(L, -3, OBJ_READER);
 				}
-				lua_pushstring(L, name);				
+				lua_pushstring(L, name);
 				lua_pushlightuserdata(L, &class_info<_Der>::info_data_map[get_main(L)]);
 				LB_ASSERT_EQ(type_traits<holder>::push(L, upvalues),
 					type_traits<holder>::stack_count);
@@ -1039,7 +1039,7 @@ namespace luabind
 		int value_member_reader(lua_State* L) noexcept
 		{
 			static_assert(type_traits<_Type>::can_push
-				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");		
+				&& type_traits<_Type>::stack_count == 1, "wrong type for reader.");
 			if (lua_type(L, 1) == LUA_TUSERDATA)
 			{
 				_Der* obj = (_Der*)get_adjusted_ptr((header*)lua_touserdata(L, 1),
@@ -1064,7 +1064,7 @@ namespace luabind
 					*(class_info_data*)lua_touserdata(L, lua_upvalueindex(1)));
 				if (obj)
 				{
-					auto f = type_traits<_Type(_Der::*)()>::get(L, lua_upvalueindex(2));				
+					auto f = type_traits<_Type(_Der::*)()>::get(L, lua_upvalueindex(2));
 					return type_traits<_Type>::push(L, (obj->*f)());
 				}
 			}
@@ -1231,7 +1231,7 @@ namespace luabind
 			base_filler<idx + 1, _Der, _Rest...>::fill(L);
 		}
 	};
-	
+
 	template <class _Class, class _Func, class... _Types>
 	struct class_func_def
 	{
@@ -1244,14 +1244,14 @@ namespace luabind
 	template <class _Class, class _Val, class... _Types>
 	struct class_val_def
 	{
-		
+
 	};
 
 	template <class _Class, class _Der, class _Type>
 	struct class_val_helper_normal
 	{
 		static _Class& def(_Class& c, const char* name, _Type _Der::* val) noexcept
-		{			
+		{
 			return c.def_readonly(name, val).def_writeonly(name, val);
 		}
 	};
@@ -1301,7 +1301,7 @@ namespace luabind
 		{
 			return c._Class::template def_constructor<
 				decltype(_Constructor::template default_construct_func<typename _Class::_This>), _Types...>(
-				&(_Constructor::template default_construct_func<typename _Class::_This>), pak...).
+					&(_Constructor::template default_construct_func<typename _Class::_This>), pak...).
 				_Class::template def_new<decltype(_Constructor::template default_new_func<typename _Class::_This>), _Types...>(
 					&(_Constructor::template default_new_func<typename _Class::_This>), pak...);
 		}
@@ -1402,7 +1402,7 @@ namespace luabind
 				}
 			}
 			return 0;
-		}		
+		}
 
 		struct enrollment : detail::enrollment
 		{
@@ -1469,7 +1469,7 @@ namespace luabind
 					lua_pushcclosure(L, &class_::__tostring, 1);
 					lua_rawset(L, -3);
 					lua_newtable(L);
-					lua_pushstring(L, "__newindex");					
+					lua_pushstring(L, "__newindex");
 					lua_rawgeti(L, -3, INDEX_SCOPE_NAME);
 					lua_pushcclosure(L, &class_::__newindex, 1);
 					lua_rawset(L, -4);
@@ -1505,7 +1505,7 @@ namespace luabind
 					lua_rawset(L, -3);
 
 					lua_pushstring(L, "__index");
-					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);					
+					lua_rawgeti(L, -4, INDEX_SCOPE_NAME);
 					lua_pushcclosure(L, &detail::obj_index, 1);
 					lua_rawset(L, -3);
 
@@ -1519,7 +1519,7 @@ namespace luabind
 
 					lua_pushcclosure(L, &detail::inherit_newindex, 0);
 					lua_rawseti(L, -2, OBJ_NEW_INDEX);
-					
+
 					if (sizeof...(_Bases))
 					{
 						lua_newtable(L);
@@ -1529,9 +1529,9 @@ namespace luabind
 #						else
 						lua_pushstring(L, "len");
 						lua_pushinteger(L, sizeof...(_Bases));
-						lua_rawset(L, -3);					
+						lua_rawset(L, -3);
 #						endif
-						lua_rawseti(L, -2, OBJ_SUPER);					
+						lua_rawseti(L, -2, OBJ_SUPER);
 					}
 				}
 				member_scope.enroll(L);
@@ -1542,13 +1542,13 @@ namespace luabind
 
 			const char* name;
 			scope member_scope;
-			scope inner_scope;			
+			scope inner_scope;
 		};
 
 		explicit class_(const char* name) noexcept
 			: scope(new enrollment(name))
 		{
-			
+
 		}
 
 		class_& operator [] (scope s) noexcept
@@ -1593,7 +1593,7 @@ namespace luabind
 				(scope(new detail::member_func<decltype(shell), _Types...>(name, shell, pak...)));
 			return *this;
 		}
-		
+
 		template <class... _Types>
 		class_& def_manual(const char* name, lua_CFunction func, _Types... pak) noexcept
 		{

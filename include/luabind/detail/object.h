@@ -98,7 +98,7 @@ namespace luabind
 		{
 			return handle;
 		}
-		
+
 		void replace(lua_State* L, int idx) noexcept
 		{
 			clear();
@@ -114,7 +114,7 @@ namespace luabind
 				else
 				{
 					handle = luaL_ref(parent->L, LUA_REGISTRYINDEX);
-				}				
+				}
 			}
 		}
 
@@ -145,7 +145,7 @@ namespace luabind
 
 		template <class _Ty>
 		void set(lua_State* L, _Ty val) noexcept
-		{			
+		{
 			static_assert(type_traits<_Ty>::stack_count == 1,
 				"_Ty has to occupy 1 stack");
 			clear();
@@ -235,7 +235,7 @@ namespace luabind
 					{
 						return type_traits<_Val>::get(parent->L, -1);
 					}
-				}				
+				}
 			}
 			return type_traits<_Val>::make_default();
 		}
@@ -256,7 +256,7 @@ namespace luabind
 					{
 						lua_settable(parent->L, -3);
 					}
-				}				
+				}
 			}
 		}
 
@@ -458,7 +458,7 @@ namespace luabind
 
 		object operator [] (int key) noexcept
 		{
-			return gettable<object,int>(key);
+			return gettable<object, int>(key);
 		}
 
 	private:

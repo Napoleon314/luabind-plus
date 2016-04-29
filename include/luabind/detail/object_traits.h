@@ -128,9 +128,9 @@ namespace luabind
 			if (it != detail::class_info<typename std::remove_cv<_Ty>::type>::info_data_map.end())
 			{
 				return (_Ty*)get_adjusted_ptr((detail::header*)lua_touserdata(L, idx), it->second);
-			}			
+			}
 			return nullptr;
-		}		
+		}
 
 		template <class _Ty, storage_type s>
 		userdata_obj<_Ty, s>* push_obj(lua_State* L) noexcept
@@ -172,7 +172,7 @@ namespace luabind
 		{
 			auto obj = (detail::userdata_obj<_Ty, STORAGE_LUA>*)lua_touserdata(L, idx);
 			LB_ASSERT(obj->info.storage == STORAGE_LUA);
-			return obj->data;	
+			return obj->data;
 		}
 
 		static int push(lua_State* L, _Ty val) noexcept
@@ -427,7 +427,7 @@ namespace luabind
 
 		static constexpr bool can_push = true;
 
-		static constexpr int stack_count = 1;		
+		static constexpr int stack_count = 1;
 
 		static int push(lua_State* L, std::shared_ptr<_Ty>& val) noexcept
 		{

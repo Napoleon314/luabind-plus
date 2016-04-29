@@ -60,7 +60,7 @@ namespace luabind
 
 			virtual void enroll(lua_State* L) const noexcept
 			{
-				LUABIND_CHECK_STACK(L);			
+				LUABIND_CHECK_STACK(L);
 				if (outer)
 				{
 					lua_pushstring(L, outer);
@@ -115,7 +115,7 @@ namespace luabind
 					lua_pushcclosure(L, &__tostring, 1);
 					lua_rawset(L, -3);
 					lua_newtable(L);
-					lua_pushstring(L, "__newindex");					
+					lua_pushstring(L, "__newindex");
 					lua_rawgeti(L, -3, INDEX_SCOPE_NAME);
 					lua_pushcclosure(L, &__newindex, 1);
 					lua_rawset(L, -4);

@@ -96,7 +96,7 @@ namespace luabind
 		{
 			return false;
 		}
-	};	
+	};
 
 	template <class _Ty>
 	struct int_traits
@@ -209,7 +209,7 @@ namespace luabind
 
 		static void get(lua_State* L, int idx) noexcept
 		{
-			
+
 		}
 
 		static void make_default() noexcept
@@ -356,7 +356,7 @@ namespace luabind
 	};
 
 	template <class _Der, class _Type>
-	struct type_traits<_Type (_Der::*)()>
+	struct type_traits<_Type(_Der::*)()>
 	{
 		typedef _Type(_Der::*func_type)();
 
